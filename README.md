@@ -1,11 +1,13 @@
 # 万能大肥鱼 · 微信机器人
 
+> v1.0.0 · [更新日志](docs/release-v1.0.0.md) · [演示脚本](docs/DEMO.md)
+
 一个跑在自己电脑上的微信私聊助手：扫码登录后，通过微信和它单聊就能用。接 DeepSeek 当大脑，能联网、读写文件、跑命令、发图发歌、解析视频，也能把长任务丢到后台跑、按 cron 定时干活。
 
 基于微信官方 [iLink Bot](https://www.wechatbot.dev/zh/protocol) 协议（微信 ClawBot 背后的那套 HTTP/JSON 接口），SDK 用 [`@wechatbot/wechatbot`](https://github.com/corespeed-io/wechatbot)。
 
 ![alt text](image.png)
-
+![alt text](image-1.png)
 
 ## 它是什么，不是什么
 

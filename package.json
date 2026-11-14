@@ -1,6 +1,6 @@
 {
   "name": "wechat-deepseek-bot",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "微信 iLink 机器人，接入 DeepSeek",
