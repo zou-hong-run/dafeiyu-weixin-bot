@@ -51,8 +51,29 @@ function imagePart(file) {
   }
 }
 
+// 自我认知文件：机器人靠它认识自己的能力边界。
+// 按 mtime 缓存——改了 SELF.md 下一轮就生效，不用重启。
+const selfDocFile = path.join(env.projectRoot, 'SELF.md')
+let selfDocCache = { mtime: 0, text: '' }
+
+function selfDoc() {
+  try {
+    const stat = fs.statSync(selfDocFile)
+    if (stat.mtimeMs !== selfDocCache.mtime) {
+      selfDocCache = { mtime: stat.mtimeMs, text: fs.readFileSync(selfDocFile, 'utf8').trim() }
+    }
+    return selfDocCache.text
+  } catch {
+    return ''
+  }
+}
+
 function systemPrompt(key) {
   const lines = [env.systemPrompt || personaPrompt, TOOL_RULES]
+
+  const self = selfDoc()
+  if (self) lines.push(`【关于你自己】
+${self}`)
 
   // 中期摘要：更早的对话被压成这一段，不带上就真的忘了
   const summary = midTerm(key)
