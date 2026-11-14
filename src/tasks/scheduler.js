@@ -196,7 +196,6 @@ export function addSchedule({ sessionKey, target, cron, prompt, createdBy = '' }
   return {
     id: task.id,
     cron: task.cron,
-      when: describeCron(task.cron),
     when: describeCron(task.cron),
     prompt: task.prompt,
   }
