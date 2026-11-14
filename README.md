@@ -4,6 +4,9 @@
 
 基于微信官方 [iLink Bot](https://www.wechatbot.dev/zh/protocol) 协议（微信 ClawBot 背后的那套 HTTP/JSON 接口），SDK 用 [`@wechatbot/wechatbot`](https://github.com/corespeed-io/wechatbot)。
 
+![alt text](image.png)
+
+
 ## 它是什么，不是什么
 
 **是**：你自己的私人助手。协议把你和它绑定成一对一通道，扫码的那个微信号就是唯一能跟它对话的人。

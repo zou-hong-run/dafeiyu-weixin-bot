@@ -213,7 +213,44 @@ const COMMANDS = {
     return `短期 ${s.shortTerm} 轮、摘要 ${s.midTermChars} 字、长期 ${s.longTerm} 条、约 ${s.historyTokens} tokens`
   },
 
-  '/id': () => `我的身份是 ${selfId() || '（还没登录）'}`,
+  '/id': (key, rest, event) => {
+    // 微信 ClawBot 里「机器人的 userId」和「你的 userId」是同一个值，
+    // 所以这里两个都列出来，免得你对着两串一样的字符串犯迷糊
+    const userId = String(event?.user_id ?? '')
+    const botId = selfId()
+    const lines = [
+      `你的 id：${userId || '（这次拿不到）'}`,
+      `我的身份：${botId || '（还没登录）'}`,
+    ]
+
+    if (env.adminUserIds.length > 0) {
+      lines.push('', `当前权限：${describeAdminPolicy()}`)
+      lines.push(
+        env.adminUserIds.includes(userId)
+          ? '你在这个名单里，高危工具（shell / 写文件）可以用。'
+          : '你不在这个名单里，高危工具用不了。',
+      )
+      return lines.join('\n')
+    }
+
+    if (env.allowDangerous) {
+      lines.push('', `当前权限：${describeAdminPolicy()}`)
+      lines.push('高危工具对所有人开放，仅适合单人自用。')
+      return lines.join('\n')
+    }
+
+    lines.push(
+      '',
+      '当前权限：高危工具（shell / 写文件 / 清记忆）都关着',
+      '',
+      '要开放，把下面这行原样写进 .env，然后重启我：',
+      `ADMIN_USER_IDS=${userId || '<你的 id>'}`,
+      '',
+      '只开给指定 id 是最小权限的做法；单人自用也可以设 ALLOW_DANGEROUS=true，但不推荐。',
+      '注意：即使开放了，读 .env、读 data/ 下的记忆和凭证这些操作仍然会被拦。',
+    )
+    return lines.join('\n')
+  },
 
   '/tools': () => {
     const tools = getTools()
