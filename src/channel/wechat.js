@@ -197,6 +197,27 @@ function textOf(itemList) {
   return parts.join('\n').trim()
 }
 
+/**
+ * 语音转写。
+ *
+ * 平台已经把语音识别成文字了——那就是对方真正「说」的内容，该当正文用，
+ * 不该塞进附件说明里让模型去猜。之前就是这么干的，结果模型看到的是
+ * 「对方还发了 1 个附件：[语音] 平台已转成文字…」，理解上隔了一层，
+ * 命令识别和连发合并也全都拿不到内容。
+ *
+ * 加 [语音] 前缀是为了让模型知道来源：不然它会把对方说的话当成对方打出来的字。
+ */
+function spokenOf(itemList) {
+  const parts = []
+  for (const item of itemList ?? []) {
+    if (item.type !== MessageItemType.VOICE) continue
+    // 截断：转写偶尔会很长，别让它把正文和上下文顶掉
+    const text = String(item.voice_item?.text ?? '').trim().slice(0, 500)
+    if (text) parts.push(`[语音] ${text}`)
+  }
+  return parts.join('\n').trim()
+}
+
 /** 附件描述，喂给 incoming.js 下载用 */
 function inboundOf(itemList) {
   const items = []
@@ -213,8 +234,9 @@ function inboundOf(itemList) {
     } else if (item.video_item) {
       items.push({ type: 'video', media: item.video_item.media, size: Number(item.video_item.video_size) || 0 })
     } else if (item.voice_item) {
-      // 语音不下载：协议里平台给了转写文字就够用，音频解开也没有识别引擎
-      items.push({ type: 'voice', text: String(item.voice_item.text ?? '') })
+      // 有转写的语音已经当正文了，别再当成附件说一遍；
+      // 没转写的才需要告诉模型「这条内容拿不到」（音频不下载，本机没有 SILK 解码）
+      if (!String(item.voice_item.text ?? '').trim()) items.push({ type: 'voice', text: '' })
     }
   }
   return items
@@ -240,7 +262,8 @@ export function toInternalEvent(msg) {
     message_id: messageId,
     user_id: userId,
     user_openid: userId,
-    content: textOf(raw.item_list),
+    // 打了字就用打的字；没打字（或只有语音）时，转写就是正文
+    content: [textOf(raw.item_list), spokenOf(raw.item_list)].filter(Boolean).join('\n').trim(),
     timestamp: msg.timestamp?.getTime?.() ?? (Number(raw.create_time_ms) || Date.now()),
     quoted: msg.quotedMessage ?? null,
     message: inboundOf(raw.item_list),
