@@ -1,6 +1,6 @@
 import { createWechatClient } from '../channel/wechat.js'
 import { log } from '../ops/logger.js'
-import { hasCredential, ilinkDirOf, listTenants } from './store.js'
+import { credentialUsable, hasCredential, ilinkDirOf, listTenants } from './store.js'
 
 // 租户管理器。
 //
@@ -40,33 +40,56 @@ function launch(client) {
 
 /**
  * 启动所有已登录的租户。
+ *
+ * 关键：先 login() 再 start()。SDK 的 start() 和所有发送都走 requireCredentials()，
+ * 而凭证只有 login() 会从磁盘读进内存。少了这一步，重启后每个账号都起不来——
+ * 现象就是「得去网页点一下重新扫码才能正常对话」：
+ * 那条路径走的是 beginLogin()，里面先调了 login()，所以碰巧能work。
+ *
  * @param {(event: object) => void} handler 统一消息入口
  */
-export function startAll(handler) {
+export async function startAll(handler) {
   onEvent = handler
 
   const tenants = listTenants()
-  const ready = tenants.filter((tenant) => hasCredential(tenant.id))
+  const ready = tenants.filter((tenant) => credentialUsable(tenant.id))
+  const broken = tenants.filter((tenant) => hasCredential(tenant.id) && !credentialUsable(tenant.id))
   const pending = tenants.filter((tenant) => !hasCredential(tenant.id))
 
-  for (const tenant of ready) {
-    try {
+  await Promise.all(
+    ready.map(async (tenant) => {
       const client = createClient(tenant.id)
-      clients.set(tenant.id, client)
-      launch(client)
-      log.info(`[租户] ${tenant.name}（${tenant.id}）已启动`)
-    } catch (error) {
-      log.error(`[租户] ${tenant.name} 启动失败`, { error: error?.message ?? String(error) })
-    }
-  }
+      try {
+        // 只加载凭证，不弹二维码（SDK 发现磁盘有凭证就直接返回）
+        await client.login()
 
+        client.onLifecycle({
+          expired: () => log.warn(`[租户] ${tenant.name} 会话过期了，需要重新扫码（去管理页面点「重新扫码」）`),
+          restored: () => log.info(`[租户] ${tenant.name} 会话已恢复`),
+        })
+
+        clients.set(tenant.id, client)
+        launch(client)
+        log.info(`[租户] ${tenant.name}（${tenant.id}）已启动`)
+      } catch (error) {
+        clients.delete(tenant.id)
+        log.error(`[租户] ${tenant.name} 启动失败，需要重新扫码`, {
+          error: error?.message ?? String(error),
+        })
+      }
+    }),
+  )
+
+  if (broken.length > 0) {
+    log.warn(`[租户] ${broken.length} 个账号的凭证不可用，需要重新扫码：${broken.map((t) => t.name).join('、')}`)
+  }
   if (pending.length > 0) {
     log.warn(
       `[租户] ${pending.length} 个账号还没登录：${pending.map((t) => t.name).join('、')}——打开 Web 页面扫码`,
     )
   }
 
-  return { total: tenants.length, started: ready.length, pending: pending.length }
+  return { total: tenants.length, started: ready.length - broken.length, pending: pending.length + broken.length }
 }
 
 export function getClient(tenantId) {

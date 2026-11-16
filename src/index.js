@@ -487,7 +487,7 @@ async function main() {
   }
 
   // 启动所有已登录的账号
-  const info = startAll(handleEvent)
+  const info = await startAll(handleEvent)
   log.info(`[租户] 共 ${info.total} 个账号，已启动 ${info.started} 个，待登录 ${info.pending} 个`)
 
   if (info.total === 0) {

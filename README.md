@@ -198,3 +198,15 @@ B 站这类站点给的是分离的音视频流。用 `fetch_video` 截片段可
 
 **高危工具突然不能用了**
 检查 `.env` 的 `ADMIN_USER_IDS` 是否配了、id 写对没有。启动日志会打当前权限状态。
+
+**重启后机器人不回消息**
+先看启动日志有没有 `[租户] xxx 已启动`。如果显示「需要重新扫码」，去管理页面点「重新扫码」——`session:expired` 时凭证会失效，SDK 那边需要走一次登录流程。
+
+**删了账号又想接回原来的记忆**
+会话键是 `<账号id>:user:<你的id>`，账号 id 变了旧记忆就找不到。先看 `ls data/tenants` 拿到新 id，再跑：
+
+```bash
+node scripts/remap-memory.js default 新账号id
+```
+
+或者建账号时把名字填成 `default`，id 会正好是 `default`，记忆自动接上。

@@ -152,10 +152,27 @@ export function migrateLegacyCredential() {
   return meta
 }
 
-/** 有没有登录过（凭证存在） */
+/** 有没有登录过（凭证文件存在） */
 export function hasCredential(id) {
   try {
     return fs.existsSync(path.join(ilinkDirOf(id), 'credentials.json'))
+  } catch {
+    return false
+  }
+}
+
+/**
+ * 凭证能不能直接用。
+ *
+ * 光看文件存在不够：文件损坏或没有 token 时，SDK 的 login() 会认为
+ * 「没有凭证」转去走二维码流程——在服务器上就是启动卡住等一个人扫码。
+ * 所以这里先自己验一遍，不能用的直接标成「需要重新扫码」。
+ */
+export function credentialUsable(id) {
+  try {
+    const raw = fs.readFileSync(path.join(ilinkDirOf(id), 'credentials.json'), 'utf8')
+    const data = JSON.parse(raw)
+    return Boolean(data?.token && data?.userId)
   } catch {
     return false
   }
