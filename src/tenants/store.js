@@ -70,6 +70,15 @@ export function getTenant(id) {
 export function createTenant({ name, id: fixedId } = {}) {
   const label = String(name ?? '').trim().slice(0, 40) || '新账号'
 
+  // 上限保护。没有这个的话页面能一直加，加到内存爆、进程被 OOM 杀掉——
+  // 而且现场看起来是「所有账号一起失联」，查起来很费劲。
+  const existing = listTenants()
+  if (existing.length >= env.maxTenants) {
+    throw new Error(
+      `账号数已达上限 ${env.maxTenants} 个。要接更多，调大 MAX_TENANTS 并确认内存够用（每个账号常驻一条长轮询）`,
+    )
+  }
+
   // 用名字的字母数字部分当 id，中文会变空，那就用时间戳
   // 迁移旧的单账号数据时用固定 id，这样记忆里的会话键能一次性对上
   let base = safeId(fixedId) || safeId(label.toLowerCase().replace(/\s+/g, '-'))

@@ -90,4 +90,8 @@ export const env = {
   webHost: process.env.WEB_HOST?.trim() || '127.0.0.1',
   webPort: Math.floor(positiveNumber('WEB_PORT', 8848)),
   webAccessToken: process.env.WEB_ACCESS_TOKEN?.trim() || '',
+
+  // 最多接多少个微信账号。每个账号一条长轮询连接 + 一份运行时状态，
+  // 主要吃内存和文件句柄。默认 20 是保守值，机器内存大可以调高。
+  maxTenants: Math.floor(positiveNumber('MAX_TENANTS', 20)),
 }
