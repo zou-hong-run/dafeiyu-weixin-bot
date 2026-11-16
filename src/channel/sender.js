@@ -1,5 +1,5 @@
 import { env } from '../config/env.js'
-import { segment, sendTo } from './wechat.js'
+import { segment } from './wechat.js'
 
 // 出站文本：切段 + 发送。
 // 微信单条消息上限比 QQ 宽（SDK 内部按 2000 字切），但一次写三千字在手机上
@@ -51,6 +51,6 @@ export async function sendReply(event, text) {
 
   for (const [index, part] of parts.entries()) {
     if (index > 0) await new Promise((resolve) => setTimeout(resolve, 500))
-    await sendTo(event, [segment.text(part)])
+    await event.send([segment.text(part)])
   }
 }

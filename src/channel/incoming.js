@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { bot } from './wechat.js'
 import { env } from '../config/env.js'
 
 // 入站附件：图片 / 文件 / 视频下载落盘，语音只取平台转写。
@@ -51,7 +50,7 @@ function safeName(item, index, ext) {
   return `${Date.now()}-${index}-${base || item.type}${ext}`
 }
 
-async function downloadOne(item, index, dir) {
+async function downloadOne(client, item, index, dir) {
   // 语音不下载：内容只在平台转写里，本机没有 SILK 解码引擎
   if (item.type === 'voice') return { ...item, file: '', skipped: true }
   if (!item.media) return { ...item, error: '没有 CDN 引用' }
@@ -59,7 +58,7 @@ async function downloadOne(item, index, dir) {
 
   try {
     fs.mkdirSync(dir, { recursive: true })
-    const buffer = await bot.downloadRaw(item.media, item.aeskey)
+    const buffer = await client.downloadRaw(item.media, item.aeskey)
     if (buffer.length > MAX_BYTES) return { ...item, error: '下载后超过大小上限' }
 
     // 声明成 image 但文件头不是图片：说明对方发的是别的东西，别硬喂给视觉模型
@@ -87,11 +86,13 @@ async function downloadOne(item, index, dir) {
  * 下载并整理成给模型看的说明。
  * 返回的 images 是本地图片路径，调用方会转成 base64 送进视觉通道。
  */
-export async function describeInbound(items, scopeKey = '') {
+export async function describeInbound(client, items, scopeKey = '') {
   if (!Array.isArray(items) || items.length === 0) return { text: '', images: [] }
 
   const dir = scopeDirOf(scopeKey)
-  const downloaded = await Promise.all(items.slice(0, MAX_ITEMS).map((item, index) => downloadOne(item, index, dir)))
+  const downloaded = await Promise.all(
+    items.slice(0, MAX_ITEMS).map((item, index) => downloadOne(client, item, index, dir)),
+  )
   const lines = []
   const images = []
 

@@ -117,7 +117,15 @@ export function killTask(id) {
  * @param {(text: string) => Promise<void>} options.notify 往用户那边说话
  * @param {(payload: object) => Promise<void>} options.send 发媒体
  */
-export function startTask({ sessionKey, actor = '', goal, notify, send, runAgent = runTaskAgent }) {
+export function startTask({
+  sessionKey,
+  tenantId = '',
+  actor = '',
+  goal,
+  notify,
+  send,
+  runAgent = runTaskAgent,
+}) {
   if (busyTasks(sessionKey).length > 0) {
     throw new Error('这个会话已经有一个工单在跑了，等它结束再开新的')
   }
@@ -128,7 +136,7 @@ export function startTask({ sessionKey, actor = '', goal, notify, send, runAgent
   const [type, ...rest] = String(sessionKey ?? '').split(':')
   const target = { type, id: rest.join(':') }
 
-  const ticket = createTicket({ sessionKey, target, goal, actor, scope: 'private' })
+  const ticket = createTicket({ sessionKey, target, goal, actor, scope: 'private', tenantId })
   const controller = new AbortController()
   const context = workerContext(ticket.id)
 

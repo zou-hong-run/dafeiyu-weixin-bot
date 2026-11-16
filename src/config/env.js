@@ -84,4 +84,10 @@ export const env = {
 
   // 扫码登录在终端里画二维码用
   loginDir: path.join(projectRoot, 'data', 'ilink'),
+
+  // 多账号管理页面。默认只听本机——要外部访问必须自己配 token。
+  webEnabled: process.env.WEB_ENABLED !== 'false',
+  webHost: process.env.WEB_HOST?.trim() || '127.0.0.1',
+  webPort: Math.floor(positiveNumber('WEB_PORT', 8787)),
+  webAccessToken: process.env.WEB_ACCESS_TOKEN?.trim() || '',
 }

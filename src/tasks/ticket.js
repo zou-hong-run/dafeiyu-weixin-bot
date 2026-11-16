@@ -61,13 +61,22 @@ function scheduleSave() {
 
 load()
 
-export function createTicket({ sessionKey, target, goal, actor = '', scope = 'group', source = 'im' }) {
+export function createTicket({
+  sessionKey,
+  target,
+  goal,
+  actor = '',
+  scope = 'private',
+  source = 'im',
+  tenantId = '',
+}) {
   const id = `t-${++seq}`
   const now = Date.now()
   const ticket = {
     id,
     sessionKey,
     target,
+    tenantId: String(tenantId ?? ''),
     goal: String(goal ?? '').slice(0, 2000),
     actor,
     scope,
