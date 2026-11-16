@@ -102,6 +102,8 @@ sudo chmod 600 /opt/wechatbot/data/ilink/*.json
 
 ## 6. 起服务
 
+**方式 A：systemd（推荐）**
+
 ```bash
 sudo cp /opt/wechatbot/deploy/wechatbot.service /etc/systemd/system/
 sudo systemctl daemon-reload
@@ -109,10 +111,36 @@ sudo systemctl enable --now wechatbot
 sudo systemctl status wechatbot
 ```
 
+**方式 B：pm2**
+
+```bash
+sudo npm i -g pm2
+cd /opt/wechatbot
+sudo -u wechatbot pm2 start ecosystem.config.cjs
+sudo -u wechatbot pm2 save
+sudo -u wechatbot pm2 startup   # 按输出的提示执行那一行 sudo 命令
+```
+
+两种方式的区别：
+
+| | systemd | pm2 |
+|---|---|---|
+| 机器人自己重启（`restart_self`） | 用不了 | 能用 |
+| 崩溃自愈 | 有（`Restart=always`） | 有（`autorestart`） |
+| 日志 | journalctl | `logs/pm2-*.log` |
+
+**想要「机器人改完代码自己重启」就必须用 pm2**——`restart_self` 只认 pm2。
+
+注意 `ecosystem.config.cjs` 里 `instances` 必须是 1：同一个微信号只能一个进程轮询，多开会互相吞消息。
+
 看日志：
 
 ```bash
+# systemd
 sudo journalctl -u wechatbot -f
+
+# pm2
+sudo -u wechatbot pm2 logs dafeiyu
 ```
 
 ## 7. 接入账号（Web 扫码）

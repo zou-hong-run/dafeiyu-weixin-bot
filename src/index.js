@@ -32,6 +32,12 @@ import { listTenants, migrateLegacyCredential } from './tenants/store.js'
 import { userIdOf, userKey } from './tenants/keys.js'
 import { startWebServer, stopWebServer } from './web/server.js'
 
+// 让内置 MCP 子进程知道自己在 pm2 里、应用叫什么，restart_self 要用。
+// 少了这两行，机器人在 pm2 下调 restart_self 会报「不是 pm2 托管」——
+// pm2 会设 pm_id 和 name，其它启动方式没有。
+process.env.PM2_MANAGED = process.env.pm_id !== undefined ? '1' : '0'
+process.env.PM2_APP_NAME = process.env.name?.trim() || process.env.PM2_APP_NAME?.trim() || 'dafeiyu'
+
 const dataDir = path.join(env.projectRoot, 'data')
 fs.mkdirSync(dataDir, { recursive: true })
 fs.mkdirSync(path.join(env.projectRoot, 'downloads'), { recursive: true })
