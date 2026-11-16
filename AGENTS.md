@@ -40,8 +40,11 @@ pnpm start
 |---|---|
 | `src/config/policy.js` | 高危工具的默认拒绝、白名单判定 |
 | `src/ops/file-policy.js` | 敏感路径黑名单（`.env` `data/` `logs/` `backups/` `.ssh/`） |
+| `src/ops/instance.js` | 单实例锁（两个进程同时轮询会互相吞消息） |
+| `src/ops/permissions.js` | Linux 上收紧密钥和记忆文件的权限（700/600） |
 | `src/mcp-server/shell-guard.js` | 危险命令拦截、敏感文件读取拦截 |
 | `src/mcp-server/net-guard.js` | 出网地址校验（含 DNS 解析到内网） |
+| `src/mcp-server/sandbox.js` | Linux 上的 bwrap 沙箱（可写目录只有 `tmp/`） |
 | `src/mcp/client.js` | MCP 子进程的环境变量白名单 |
 | `src/mcp/mcp-guard.js` | 外部 MCP 服务的启动命令白名单 |
 

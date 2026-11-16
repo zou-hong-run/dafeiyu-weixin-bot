@@ -1,0 +1,49 @@
+[Unit]
+Description=万能大肥鱼 · 微信机器人
+Documentation=https://github.com/zou-hong-run/dafeiyu-weixin-bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=wechatbot
+Group=wechatbot
+WorkingDirectory=/opt/wechatbot
+
+# TZ 必须设成你的时区。定时任务用的是本地时间，
+# 服务器默认 UTC 的话「每天 8:30」会变成北京时间 16:30。
+Environment=TZ=Asia/Shanghai
+
+# 密钥放项目外，项目目录即使被静态托管暴露也读不到
+Environment=APP_ENV_FILE=/etc/wechatbot/env
+
+ExecStart=/usr/bin/node src/index.js
+
+# 崩溃自愈。机器人自己会拉长轮询，正常不该退出；
+# 退出多半是被 OOM 杀掉或者代码崩了，重启是正确反应。
+Restart=always
+RestartSec=5
+
+# 日志直接进 journald，同时程序自己也会写 logs/bot-日期.log
+StandardOutput=journal
+StandardError=journal
+
+# ── 资源上限（按机器内存调，默认不限）──
+# MemoryMax=1G
+# MemoryHigh=800M
+
+# ── systemd 加固（可选）──
+# 这些选项会让文件系统只读，只放行下面几个目录。
+# 注意：如果启用了 bubblewrap 沙箱（shell 工具用），
+# ProtectSystem 过严可能导致 bwrap 建挂载点失败，遇到就逐条注释掉试。
+NoNewPrivileges=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+# ProtectSystem=strict
+# ProtectHome=true
+# ReadWritePaths=/opt/wechatbot/data /opt/wechatbot/logs /opt/wechatbot/downloads /opt/wechatbot/tmp
+
+[Install]
+WantedBy=multi-user.target

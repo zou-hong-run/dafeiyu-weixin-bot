@@ -39,6 +39,12 @@ pnpm start
 
 两个都从 PATH 里找，也可以配 `YTDLP_PATH` / `FFMPEG_PATH`。
 
+## 部署到服务器
+
+要放到 Linux 上跑，见 [docs/DEPLOY.md](docs/DEPLOY.md)——包含 systemd 配置、密钥外置、时区、以及**怎么确认沙箱和文件权限真的生效了**。
+
+Linux 上比 Windows 多两层防护：bubblewrap 内核沙箱（装才有）和真实生效的 700/600 文件权限。
+
 ## 命令
 
 在微信里直接发这些，不走模型：
