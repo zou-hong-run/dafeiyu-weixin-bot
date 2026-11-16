@@ -48,8 +48,10 @@ export const env = {
   maxInputChars: Math.floor(positiveNumber('MAX_INPUT_CHARS', 1000)),
   replyMaxChars: Math.floor(positiveNumber('REPLY_MAX_CHARS', 900)),
   maxOutputTokens: Math.floor(positiveNumber('MAX_OUTPUT_TOKENS', 4096)),
-  // 一轮对话最多调几轮工具：太多会把额度和上下文一起吃穿
-  maxToolRounds: Math.floor(positiveNumber('MAX_TOOL_ROUNDS', 8)),
+  // 一轮对话最多调几轮工具。
+  // 8 轮对「搜几条新闻、各抓一次正文、整理成文件、发出去」这种任务是不够的，
+  // 会撞上限然后放弃——默认给到 16，复杂任务还有工单兜底。
+  maxToolRounds: Math.floor(positiveNumber('MAX_TOOL_ROUNDS', 16)),
   toolTimeoutMs: positiveNumber('TOOL_TIMEOUT_SECONDS', 60) * 1000,
 
   // 后台工单
