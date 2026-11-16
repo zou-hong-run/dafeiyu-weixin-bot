@@ -88,6 +88,6 @@ export const env = {
   // 多账号管理页面。默认只听本机——要外部访问必须自己配 token。
   webEnabled: process.env.WEB_ENABLED !== 'false',
   webHost: process.env.WEB_HOST?.trim() || '127.0.0.1',
-  webPort: Math.floor(positiveNumber('WEB_PORT', 8787)),
+  webPort: Math.floor(positiveNumber('WEB_PORT', 8848)),
   webAccessToken: process.env.WEB_ACCESS_TOKEN?.trim() || '',
 }
