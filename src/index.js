@@ -12,6 +12,9 @@ import { sendTo, sendToUser, sendTyping, login, onLifecycle, onMessage, selfId, 
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, reset, stats } from './memory/memory.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
+import { acquireInstanceLock } from './ops/instance.js'
+import { describePlatform } from './ops/platform.js'
+import { tightenPermissions } from './ops/permissions.js'
 import { log } from './ops/logger.js'
 import { runTaskAgent } from './chat/agent.js'
 import {
@@ -33,6 +36,7 @@ fs.mkdirSync(path.join(env.projectRoot, 'downloads'), { recursive: true })
 
 const startedAt = Date.now()
 let shuttingDown = false
+let releaseLock = null
 
 // 平台偶尔会重推同一条消息，没有这道去重会回两遍
 const seen = new Set()
@@ -427,6 +431,7 @@ async function shutdown(signal) {
     new Promise((resolve) => setTimeout(resolve, 5000).unref()),
   ]).catch(() => {})
 
+  releaseLock?.()
   log.info('已清理完毕')
   process.exit(0)
 }
@@ -445,6 +450,16 @@ process.on('uncaughtException', (error) => {
 })
 
 async function main() {
+  // 同一个微信号只能有一个实例在轮询。两个一起跑会互相覆盖游标，
+  // 表现是消息偶尔不回或回两遍，而且两边日志看着都正常——所以必须在最前面拦住。
+  releaseLock = acquireInstanceLock(path.join(dataDir, 'instance.lock'))
+
+  // Linux 上把密钥和记忆文件的权限收到只有属主能读
+  const tightened = tightenPermissions(env.projectRoot)
+  if (tightened.length > 0) log.info(`已收紧文件权限：${tightened.join('，')}`)
+
+  log.info(`平台：${describePlatform()}`)
+
   onLifecycle({
     expired: () => log.warn('会话过期了，正在重新扫码'),
     restored: () => log.info('会话已恢复'),

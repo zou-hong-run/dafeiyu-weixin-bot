@@ -1,11 +1,15 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { config } from 'dotenv'
+import { defaultEnvFile } from '../ops/platform.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 
-// 微信机器人不需要 appId/appSecret：凭证靠扫码登录拿，SDK 自己落盘到 data/ilink/
-config({ path: path.join(projectRoot, '.env'), quiet: true })
+// 密钥优先从项目外读（Linux 上是 /etc/wechatbot/env，或用 APP_ENV_FILE 指定），
+// 项目根的 .env 只做兜底。这样即使项目目录被 web 服务或静态托管暴露，
+// 也拿不到 API key 和登录凭证。
+const externalEnv = process.env.APP_ENV_FILE?.trim() || defaultEnvFile()
+config({ path: [externalEnv, path.join(projectRoot, '.env')], quiet: true })
 
 function positiveNumber(name, fallback) {
   const value = Number(process.env[name])
