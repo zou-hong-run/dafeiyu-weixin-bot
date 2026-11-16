@@ -30,18 +30,28 @@ src/
 │   ├── logger.js      日志（控制台 + 按天落盘）
 │   ├── audit.js       工具调用留痕（含被拒绝的）
 │   ├── activity.js    活跃度台账（主动推送门控依据）
+│   ├── instance.js    单实例锁（防两个进程同时轮询）
+│   ├── permissions.js Linux 文件权限收紧（700/600）
 │   ├── file-policy.js 敏感路径黑名单
 │   ├── budget.js      按内存算能力上限
 │   └── platform.js    平台差异探测
+├── tenants/      多账号
+│   ├── store.js       账号注册表（data/tenants/<id>/ 目录隔离）
+│   └── manager.js     每个账号一个 client，负责启动/停止/扫码
+├── web/          管理页面
+│   ├── server.js      HTTP 服务、认证、二维码生成
+│   └── page.js        页面（无构建，内联样式和脚本）
 └── config/       env.js（配置）、policy.js（工具权限）
 ```
 
 ## 一条消息怎么变成回复
 
+每个账号一个 client 实例，各自的长轮询和 context_token。消息进来时带 `tenantId` 和绑定好的 `send()`，回复从同一个实例原路发出去——不会串到别的账号。
+
 ```
-长轮询 getupdates
-  ↓  SDK 解析 + 缓存 context_token
-onMessage（src/index.js）
+长轮询 getupdates（每个账号各自一条）
+  ↓  SDK 解析 + 缓存 context_token → event 带 tenantId 和 send()
+handleEvent（src/index.js）
   ↓  去重 → 记活跃度 → 是命令吗？→ 工单在跑吗？
 连发合并（merge.js，默认 2.5s 窗口）
   ↓
@@ -176,12 +186,14 @@ Windows 上没有 OS 级沙箱（bwrap 只有 Linux 有）。所以 shell 的隔
 
 | 文件 | 内容 | 敏感 |
 |---|---|---|
-| `data/ilink/credentials.json` | bot_token（登录凭证） | **是** |
-| `data/ilink/context_tokens.json` | 每个用户的 context_token | **是** |
-| `data/ilink/cursor.json` | 长轮询游标 | 否 |
-| `data/memory.json` | 三层记忆（对话内容） | **是** |
-| `data/tickets.json` | 工单状态和历史 | 是 |
-| `data/schedules.json` | 定时任务 | 是 |
+| `data/tenants/<id>/meta.json` | 账号名称、创建时间 | 否 |
+| `data/tenants/<id>/ilink/credentials.json` | 该账号的 bot_token | **是** |
+| `data/tenants/<id>/ilink/context_tokens.json` | 该账号的 context_token | **是** |
+| `data/tenants/<id>/ilink/cursor.json` | 该账号的长轮询游标 | 否 |
+| `data/instance.lock` | 单实例锁（进程 pid） | 否 |
+| `data/memory.json` | 三层记忆（按人分，不按账号分） | **是** |
+| `data/tickets.json` | 工单状态和历史（含 tenantId） | 是 |
+| `data/schedules.json` | 定时任务（含 target.tenantId） | 是 |
 | `data/activity.json` | 各会话最后活跃时间 | 否 |
 | `data/music-cache.json` | 推过哪些歌（防重复） | 否 |
 | `logs/bot-日期.log` | 运行日志 + 审计 | 是 |

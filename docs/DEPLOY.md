@@ -115,7 +115,34 @@ sudo systemctl status wechatbot
 sudo journalctl -u wechatbot -f
 ```
 
-## 7. 确认安全机制真的生效
+## 7. 接入账号（Web 扫码）
+
+服务起来后，管理页面在 `http://127.0.0.1:8787/`。
+
+服务器上的话用 SSH 端口转发，别把页面直接暴露到公网：
+
+```bash
+ssh -L 8787:127.0.0.1:8787 user@your-server
+```
+
+本地浏览器打开 `http://127.0.0.1:8787/` → 输入名字 → 添加账号 → 扫码。
+
+**确实要对外监听**（比如挂在 nginx 后面），必须同时设令牌：
+
+```bash
+sudo -u wechatbot nano /etc/wechatbot/env
+```
+
+```env
+WEB_HOST=0.0.0.0
+WEB_ACCESS_TOKEN=自己生成一串长的
+```
+
+没设令牌就监听非本地地址，程序会**拒绝启动**——这是故意的，开放的管理页面等于把机器人交出去。
+
+改完 `sudo systemctl restart wechatbot`。
+
+## 8. 确认安全机制真的生效
 
 这一步别跳过。**看启动日志里的三行**：
 
@@ -143,7 +170,7 @@ INFO  已收紧文件权限：data 700 → 700，data/ilink/credentials.json 644
 
 预期：被拒。即使配了 `ADMIN_USER_IDS` 也一样——授权不等于放开所有命令。
 
-## 8. 时区（定时任务依赖它）
+## 9. 时区（定时任务依赖它）
 
 定时任务用本地时间。「每天早上 8:30」在 UTC 服务器上会变成北京时间 16:30。
 
@@ -154,7 +181,7 @@ timedatectl | grep "Time zone"
 
 systemd 单元里也设了 `Environment=TZ=Asia/Shanghai`，两处都设更保险。
 
-## 9. 权限配置
+## 10. 权限配置
 
 默认高危工具是关的。要开：
 
@@ -172,7 +199,7 @@ ADMIN_USER_IDS=你的id@im.wechat
 sudo systemctl restart wechatbot
 ```
 
-## 10. 运维
+## 11. 运维
 
 **看日志**
 
@@ -213,7 +240,7 @@ sudo systemctl restart wechatbot
 
 注意：systemd 下 `restart_self` 工具用不了（它只认 pm2）。想让它自己重启，那个工具会返回明确报错，用上面的命令。
 
-## 11. 排错
+## 12. 排错
 
 **服务起不来，日志说「已经有一个实例在跑」**
 
