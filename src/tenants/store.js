@@ -67,11 +67,12 @@ export function getTenant(id) {
  * 新建租户。id 由名字生成，冲突了加序号。
  * @returns {{id: string, name: string, createdAt: number}}
  */
-export function createTenant({ name }) {
+export function createTenant({ name, id: fixedId } = {}) {
   const label = String(name ?? '').trim().slice(0, 40) || '新账号'
 
   // 用名字的字母数字部分当 id，中文会变空，那就用时间戳
-  let base = safeId(label.toLowerCase().replace(/\s+/g, '-'))
+  // 迁移旧的单账号数据时用固定 id，这样记忆里的会话键能一次性对上
+  let base = safeId(fixedId) || safeId(label.toLowerCase().replace(/\s+/g, '-'))
   if (!base) base = `wx-${Date.now().toString(36)}`
 
   let id = base
@@ -118,7 +119,7 @@ export function migrateLegacyCredential() {
   if (!fs.existsSync(path.join(legacy, 'credentials.json'))) return null
   if (listTenants().length > 0) return null
 
-  const meta = createTenant({ name: '默认账号' })
+  const meta = createTenant({ name: '默认账号', id: 'default' })
   const target = ilinkDirOf(meta.id)
 
   try {

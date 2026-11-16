@@ -416,6 +416,30 @@ export function stats(key) {
   }
 }
 
+/**
+ * 单账号时代的会话键是 `user:<id>`，多账号改成 `<tenantId>:user:<id>`。
+ * 启动时把没前缀的搬过去，否则升级后记忆全丢——对方会觉得「它把我忘了」。
+ *
+ * @returns {number} 迁移了几个会话
+ */
+export function migrateLegacySessions(tenantId) {
+  const tenant = String(tenantId ?? '').trim()
+  if (!tenant) return 0
+
+  let moved = 0
+  for (const key of Object.keys(state.sessions)) {
+    // 只搬 user: 开头的；worker: 这类本来就带唯一 id，不动
+    if (!key.startsWith('user:')) continue
+    const next = `${tenant}:${key}`
+    if (!state.sessions[next]) state.sessions[next] = state.sessions[key]
+    delete state.sessions[key]
+    moved += 1
+  }
+
+  if (moved > 0) scheduleSave()
+  return moved
+}
+
 export function flush() {
   clearTimeout(saveTimer)
   persist()

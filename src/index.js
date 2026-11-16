@@ -9,7 +9,7 @@ import { runTaskAgent } from './chat/agent.js'
 import { cleanupIncoming, describeInbound } from './channel/incoming.js'
 import { sendReply } from './channel/sender.js'
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
-import { flush, reset, stats } from './memory/memory.js'
+import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
 import { acquireInstanceLock } from './ops/instance.js'
 import { log } from './ops/logger.js'
@@ -29,6 +29,7 @@ import { flushTickets, recoverTickets } from './tasks/ticket.js'
 import { startWatchdog, stopWatchdog } from './tasks/watchdog.js'
 import { getClient, startAll, stopAll, tenantsStatus } from './tenants/manager.js'
 import { listTenants, migrateLegacyCredential } from './tenants/store.js'
+import { userIdOf, userKey } from './tenants/keys.js'
 import { startWebServer, stopWebServer } from './web/server.js'
 
 const dataDir = path.join(env.projectRoot, 'data')
@@ -69,7 +70,9 @@ function enqueue(key, task) {
 }
 
 function sessionKeyOf(event) {
-  return `user:${event.user_id}`
+  // 必须带账号前缀：同一个微信号可能先后扫两个 ClawBot 的码，
+  // 只用 user:<id> 的话两个账号的对话会共用一份记忆
+  return userKey(event.tenantId, event.user_id)
 }
 
 function formatDuration(ms) {
@@ -94,7 +97,7 @@ async function runScheduledTask(task) {
   const userId = task.target.id
   return runTaskAgent({
     taskPrompt: `${task.prompt}\n\n（这是定时任务，你现在没有对话上下文。你的最终输出会作为一条消息直接发给对方；如果确实没什么可说的，就只输出 SILENT）`,
-    sessionKey: `user:${userId}`,
+    sessionKey: userKey(tenantId, userId),
     actor: task.createdBy || 'scheduler',
     send: (payload) => client.sendToUser(userId, payload),
   })
@@ -460,6 +463,16 @@ async function main() {
   // 老版本的单账号凭证搬到租户目录，不用重新扫码
   migrateLegacyCredential()
 
+  // 旧会话键 user:<id> 要补上账号前缀，否则升级后记忆全找不到了。
+  // 只在账号唯一时迁移——多个账号时没法判断旧数据到底属于谁。
+  const tenantsNow = listTenants()
+  if (tenantsNow.length === 1) {
+    const moved = migrateLegacySessions(tenantsNow[0].id)
+    if (moved > 0) log.info(`[记忆] ${moved} 个旧会话已挂到账号「${tenantsNow[0].name}」名下`)
+  } else if (tenantsNow.length > 1) {
+    log.warn('[记忆] 有多个账号，旧会话无法判断归属，未自动迁移')
+  }
+
   try {
     const tools = await startMcp({ apiKey: env.apiKey, baseURL: env.baseURL })
     log.info(`工具已就绪：${describePolicy(tools.map((tool) => tool.name))}`)
@@ -486,7 +499,7 @@ async function main() {
       const client = getClient(target?.tenantId ?? '')
       if (!client) throw new Error(`账号 ${target?.tenantId || '(未指定)'} 没在运行，没法推送`)
 
-      const key = `user:${target.id}`
+      const key = userKey(target?.tenantId ?? '', target.id)
       if (!canPushTo(key)) {
         throw new Error(`已经 ${Math.round(idleMinutesOf(key))} 分钟没说话了，主动推送大概率发不出去`)
       }
@@ -500,7 +513,7 @@ async function main() {
     send: async (target, text) => {
       const client = getClient(target?.tenantId ?? '')
       if (!client) return
-      if (!canPushTo(`user:${target.id}`)) return
+      if (!canPushTo(userKey(target?.tenantId ?? '', target.id))) return
       await client.sendToUser(target.id, text).catch(() => {})
     },
     abort: (ticketId) => {
@@ -517,7 +530,7 @@ async function main() {
   const interrupted = recoverTickets()
   for (const ticket of interrupted) {
     const client = getClient(ticket.tenantId ?? '')
-    const userId = String(ticket.sessionKey ?? '').replace(/^user:/, '')
+    const userId = userIdOf(ticket.sessionKey)
     if (!client || !userId) continue
     await client
       .sendToUser(userId, `上次有个工单没跑完（${ticket.id}）：\n${String(ticket.goal ?? '').slice(0, 100)}\n\n要重跑就发 /task 重新发起。`)

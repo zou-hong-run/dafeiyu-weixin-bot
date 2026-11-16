@@ -191,7 +191,7 @@ Windows 上没有 OS 级沙箱（bwrap 只有 Linux 有）。所以 shell 的隔
 | `data/tenants/<id>/ilink/context_tokens.json` | 该账号的 context_token | **是** |
 | `data/tenants/<id>/ilink/cursor.json` | 该账号的长轮询游标 | 否 |
 | `data/instance.lock` | 单实例锁（进程 pid） | 否 |
-| `data/memory.json` | 三层记忆（按人分，不按账号分） | **是** |
+| `data/memory.json` | 三层记忆（键是 `<tenantId>:user:<userId>`） | **是** |
 | `data/tickets.json` | 工单状态和历史（含 tenantId） | 是 |
 | `data/schedules.json` | 定时任务（含 target.tenantId） | 是 |
 | `data/activity.json` | 各会话最后活跃时间 | 否 |

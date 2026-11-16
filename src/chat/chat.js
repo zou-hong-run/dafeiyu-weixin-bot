@@ -119,7 +119,7 @@ function clipToolResult(text) {
 
 /**
  * 一轮对话。
- * @param {string} key 会话键（微信只有私聊，就是 `user:<userId>`）
+ * @param {string} key 会话键（形如 `<tenantId>:user:<userId>`，由 tenants/keys.js 生成）
  * @param {string} input 用户这次说的话（附件说明已经拼进去了）
  * @param {{images?: string[], name?: string, actor?: string, send?: (payload: object) => Promise<void>}} options
  *   send 不传就没有媒体发送工具——没有会话上下文时发不出去
