@@ -1,7 +1,6 @@
 import { getTodos, renderTodos, setTodos, todoProgress } from './todos.js'
 
-// 任务清单工具。提示词和语义搬自 Kimi Code 的 TodoList 工具
-// （packages/agent-core-v2/src/features/todo/tools/todo-list/todo-list.md）。
+// 任务清单工具。
 
 export const TODO_TOOL_NAMES = new Set(['todo_write'])
 

@@ -1,7 +1,6 @@
 import { submitPlan } from './plan.js'
 
-// 规划模式的出口工具。语义同 Kimi Code 的 ExitPlanMode：
-// 模型把方案交出来，等人的批准，批准前它依然只能读。
+// 规划模式的出口工具：模型把方案交出来，等人的批准，批准前它依然只能读。
 
 export const PLAN_TOOL_NAMES = new Set(['exit_plan_mode'])
 

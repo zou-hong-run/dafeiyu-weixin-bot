@@ -4,7 +4,7 @@ import { paths } from '../config/paths.js'
 
 // 工具结果截断。
 //
-// 策略搬自 Kimi Code 的 agent/toolResultTruncation：
+// 分三层：
 //   1. 单行超长先截断——压缩过的 JSON、minified 代码经常一行几万字符
 //   2. 总长度超限时把完整内容落盘，模型只看到「开头 + 结尾 + 文件路径」
 //   3. 落盘失败就只给首尾预览，并明说存不下
