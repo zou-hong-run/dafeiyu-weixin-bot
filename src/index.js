@@ -87,6 +87,39 @@ function sessionKeyOf(event) {
   return userKey(event.tenantId, event.user_id)
 }
 
+/**
+ * 首次启动时给一份 SELF.local.md 模板。
+ * 已经存在就绝不覆盖——那是用户写的东西。
+ */
+function ensureSelfLocal() {
+  const file = path.join(paths.data, 'SELF.local.md')
+  if (fs.existsSync(file)) return
+
+  const template = `# 本实例的补充设定
+
+这个文件不进仓库（在数据目录下），**只影响你这一台机器**。
+代码里的 SELF.md 是基线，会随代码更新；这里写的内容会追加在它后面。
+
+适合写这些：
+- 这台机器是谁在用、什么场景
+- 项目背景、常用目录、别去碰的路径
+- 你希望它记住的本地约定
+
+下面几行是示例，用不上就删掉：
+
+- 这台机器是我自己在用，回答可以随意点，不用客套
+- 项目都在 D:\project 下，别动系统盘
+- 家里人不碰这台机器，不需要考虑多人场景
+`
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, template, 'utf8')
+    log.info(`[启动] 已生成本实例设定模板：data/SELF.local.md（改它不影响别人的机器人）`)
+  } catch (error) {
+    log.warn('[启动] 生成 SELF.local.md 失败', { error: error?.message ?? String(error) })
+  }
+}
+
 function formatDuration(ms) {
   const minutes = Math.floor(ms / 60_000)
   if (minutes < 60) return `${minutes} 分钟`
@@ -539,6 +572,10 @@ async function main() {
 
   const tightened = tightenPermissions()
   if (tightened.length > 0) log.info(`已收紧文件权限：${tightened.join('，')}`)
+
+  // 准备本实例的自我认知文件。它是数据不是代码——多人共用一个仓库时，
+  // 各人的个性化设定互不干扰，也不会被代码更新覆盖。
+  ensureSelfLocal()
 
   log.info(`平台：${describePlatform()}`)
 

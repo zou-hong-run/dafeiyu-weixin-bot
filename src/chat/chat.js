@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { env } from '../config/env.js'
+import { paths } from '../config/paths.js'
 import { filterTools } from '../config/policy.js'
 import { getTools, syncRegistry, toDeepSeekTools } from '../mcp/client.js'
 import { personaPrompt } from './persona.js'
@@ -59,21 +60,43 @@ function imagePart(file) {
   }
 }
 
-// 自我认知文件：机器人靠它认识自己的能力边界。
-// 按 mtime 缓存——改了 SELF.md 下一轮就生效，不用重启。
-const selfDocFile = path.join(env.projectRoot, 'SELF.md')
-let selfDocCache = { mtime: 0, text: '' }
+// 自我认知分两层：
+//   · SELF.md          —— 代码里的基线，描述能力边界，随代码更新
+//   · SELF.local.md    —— 数据目录里的本实例设定，git 不碰
+//
+// 为什么要分：SELF.md 在仓库里，多人共用同一个仓库时，谁改一句大家拉下来
+// 机器人就变了。但能力清单又必须跟着代码走（加了新工具得知道）。
+// 所以基线归代码，个人设定归数据目录——多实例各自独立，互不影响。
+const selfBaseFile = path.join(env.projectRoot, 'SELF.md')
+const selfLocalFile = path.join(paths.data, 'SELF.local.md')
 
-function selfDoc() {
+const selfCache = {
+  base: { mtime: 0, text: '' },
+  local: { mtime: 0, text: '' },
+}
+
+function readCached(file, slot) {
   try {
-    const stat = fs.statSync(selfDocFile)
-    if (stat.mtimeMs !== selfDocCache.mtime) {
-      selfDocCache = { mtime: stat.mtimeMs, text: fs.readFileSync(selfDocFile, 'utf8').trim() }
+    const stat = fs.statSync(file)
+    if (stat.mtimeMs !== slot.mtime) {
+      slot.mtime = stat.mtimeMs
+      slot.text = fs.readFileSync(file, 'utf8').trim()
     }
-    return selfDocCache.text
+    return slot.text
   } catch {
+    // 文件没了就把缓存也清掉，别一直拿旧的
+    slot.mtime = 0
+    slot.text = ''
     return ''
   }
+}
+
+function selfDoc() {
+  const base = readCached(selfBaseFile, selfCache.base)
+  const local = readCached(selfLocalFile, selfCache.local)
+
+  if (!local) return base
+  return `${base}\n\n【本实例的补充设定】\n${local}`
 }
 
 function systemPrompt(key) {

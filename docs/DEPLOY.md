@@ -333,7 +333,7 @@ AUTO_SYNC_MINUTES=60
 
 改代码目录的 `SELF.md` 会覆盖你本地改过的版本——如果想让机器人有专属认知，改完记得提交到你自己的分支。
 
-**备份就备这三样**：`data/`、`skills/`、密钥文件。丢了 `data/ilink/` 要重新扫码，丢了 `skills/` 要重写。
+**备份就备这三样**：`data/`、`skills/`、密钥文件。其中 `data/SELF.local.md` 是你给机器人写的本机设定，不在仓库里。丢了 `data/ilink/` 要重新扫码，丢了 `skills/` 要重写。
 
 **备份**
 
