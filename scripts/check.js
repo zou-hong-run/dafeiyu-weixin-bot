@@ -2,7 +2,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { pathToFileURL } from 'node:url'
+import { prepareTestEnv } from './prepare-env.js'
 
 // 本地检查。`pnpm check` 和 CI 跑的是同一份。
 //
@@ -14,7 +15,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 //
 // 加 --quiet 只输出失败项，给自动同步用。
 
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
+const projectRoot = prepareTestEnv()
 const QUIET = process.argv.includes('--quiet')
 const failures = []
 
@@ -52,14 +53,6 @@ function walk(dir, out = []) {
   }
   return out
 }
-
-// 检查脚本自己会 import 业务模块，得先给个占位 key，
-// 否则 env.js 看到没配置直接 process.exit(1)
-if (!process.env.DEEP_SEEK_API_KEY && !process.env.DEEPSEEK_API_KEY) {
-  process.env.DEEP_SEEK_API_KEY = 'check-placeholder'
-}
-// 测试和落盘都往 tmp 里写，别碰真实数据
-process.env.TMP_DIR ||= path.join(projectRoot, 'tmp', 'check')
 
 const files = [...walk(path.join(projectRoot, 'src')), ...walk(path.join(projectRoot, 'scripts'))]
 
