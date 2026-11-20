@@ -24,7 +24,7 @@ jobs:
 
     env:
       # 只是让 env.js 的必填校验过掉，不会发起任何真实请求
-      DEEP_SEEK_API_KEY: sk-ci-placeholder
+      DEEP_SEEK_API_KEY: ci-placeholder-not-a-real-key
       # 授权变量留空：policy 测试要验证「未配白名单时默认拒绝」
       ADMIN_USER_IDS: ''
       ALLOW_DANGEROUS: 'false'
