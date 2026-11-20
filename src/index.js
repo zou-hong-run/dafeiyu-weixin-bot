@@ -11,6 +11,7 @@ import { sendReply } from './channel/sender.js'
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { flushTodos } from './chat/todos.js'
+import { cleanupSpill } from './chat/truncate.js'
 import { cancelPlan, enterPlan, exitPlan, flushPlans, getPlan, isPlanning, planReady } from './chat/plan.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
 import { acquireInstanceLock } from './ops/instance.js'
@@ -620,6 +621,10 @@ async function main() {
     try {
       const removed = cleanupIncoming(env.mediaTtlHours)
       if (removed > 0) log.info(`回收附件 ${removed} 个`)
+
+      // 工具输出落盘的文件也别一直堆着
+      const spill = cleanupSpill(24)
+      if (spill > 0) log.info(`回收工具输出 ${spill} 个`)
     } catch (error) {
       log.warn('清理失败', { error: error?.message ?? String(error) })
     }

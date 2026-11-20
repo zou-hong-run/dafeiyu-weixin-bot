@@ -11,6 +11,7 @@ import { runTool } from './tool-runner.js'
 import { TODO_TOOLS } from './todo-tools.js'
 import { getTodos, renderTodos, staleReminder } from './todos.js'
 import { compactConversation } from './compaction.js'
+import { truncateToolResult } from './truncate.js'
 import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
@@ -23,7 +24,6 @@ const client = new OpenAI({ apiKey: env.apiKey, baseURL: env.baseURL })
 // DeepSeek 上下文 128K，留 40% 给输出和提示词，剩下的才是历史预算
 const HISTORY_BUDGET_TOKENS = 60_000
 // 单条工具返回的硬上限：网页正文、命令输出能有好几万字，全塞进去会把上下文撑爆
-const TOOL_RESULT_LIMIT = 4000
 
 const TOOL_RULES = `工具使用：
 - 工具没成功就等于这件事没做。报「已经发出去了」「执行结果是…」之前，先确认这一轮真的有那次工具调用和它的返回；没有就直说「没跑成」并给报错原文，绝不编一份结果出来
@@ -138,11 +138,6 @@ async function answerWithoutTools(messages) {
   }
 }
 
-function clipToolResult(text) {
-  const value = String(text ?? '')
-  return value.length <= TOOL_RESULT_LIMIT ? value : `${value.slice(0, TOOL_RESULT_LIMIT)}…（已截断）`
-}
-
 /**
  * 一轮对话。
  * @param {string} key 会话键（形如 `<tenantId>:user:<userId>`，由 tenants/keys.js 生成）
@@ -233,7 +228,11 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
       if (toolName === 'todo_write') lastTodoRound = round
 
       const result = await runTool(toolName, args, { key, actor, send })
-      messages.push({ role: 'tool', tool_call_id: call.id, content: clipToolResult(result) })
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: truncateToolResult(result, { toolName, callId: call.id }),
+      })
     }
 
     if (round === env.maxToolRounds) exhausted = true

@@ -6,6 +6,7 @@ import { LOCAL_TOOLS } from './local-tools.js'
 import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
 import { compactConversation } from './compaction.js'
+import { truncateToolResult } from './truncate.js'
 import { TODO_TOOLS } from './todo-tools.js'
 
 // 后台工单的执行引擎。
@@ -19,7 +20,6 @@ import { TODO_TOOLS } from './todo-tools.js'
 
 const client = new OpenAI({ apiKey: env.apiKey, baseURL: env.baseURL })
 
-const TOOL_RESULT_LIMIT = 4000
 
 const TASK_SYSTEM = `你在后台执行一件被交代的任务。对方看不到你的过程，只会看到进度提示和最终汇报。
 
@@ -134,11 +134,6 @@ async function compactAgentMessages(messages) {
   return true
 }
 
-function clip(text) {
-  const value = String(text ?? '')
-  return value.length <= TOOL_RESULT_LIMIT ? value : `${value.slice(0, TOOL_RESULT_LIMIT)}…（已截断）`
-}
-
 /**
  * 跑一次后台任务。
  *
@@ -238,7 +233,11 @@ export async function runTaskAgent({
       onStep?.({ round, tool: name })
 
       const result = await runTool(name, args, { key: sessionKey, actor, send })
-      messages.push({ role: 'tool', tool_call_id: call.id, content: clip(result) })
+      messages.push({
+        role: 'tool',
+        tool_call_id: call.id,
+        content: truncateToolResult(result, { toolName: name, callId: call.id }),
+      })
     }
 
     // 长任务撑爆上下文时先压缩再保留，别直接丢——丢的是「做到哪了」和「踩过什么坑」
