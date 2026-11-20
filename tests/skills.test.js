@@ -14,7 +14,7 @@ import {
 import { makeSkillHandlers } from '../src/chat/skill-tools.js'
 
 const ROOT = paths.skills
-const KEY = 'test:user:skills'
+const SESSION = 'test:user:skills'
 
 /** 造一个技能库：skills/<目录>/SKILL.md + 一份总索引 */
 function makeLibrary() {
@@ -53,23 +53,23 @@ test('searchLibrary 按目录名模糊匹配', () => {
 test('readSkill 优先读本会话技能，其次技能库', () => {
   makeLibrary()
 
-  const fromLibrary = readSkill(KEY, 'docx')
+  const fromLibrary = readSkill(SESSION, 'docx')
   assert.ok(fromLibrary)
   assert.equal(fromLibrary.from, 'library')
   assert.match(fromLibrary.body, /读取 Word 文档/)
 
   // 本会话写了同名技能，应该盖过技能库
-  writeSkill(KEY, 'docx', '适用场景：测试覆盖\n\n这是本会话的版本')
-  const fromSession = readSkill(KEY, 'docx')
+  writeSkill(SESSION, 'docx', '适用场景：测试覆盖\n\n这是本会话的版本')
+  const fromSession = readSkill(SESSION, 'docx')
   assert.equal(fromSession.from, 'session')
   assert.match(fromSession.body, /本会话的版本/)
 
-  fs.rmSync(path.join(ROOT, sanitize(KEY)), { recursive: true, force: true })
+  fs.rmSync(path.join(ROOT, sanitize(SESSION)), { recursive: true, force: true })
 })
 
 test('readSkill 能读总索引', () => {
   makeLibrary()
-  const index = readSkill(KEY, 'SKILLS-INDEX.md')
+  const index = readSkill(SESSION, 'SKILLS-INDEX.md')
   assert.ok(index)
   assert.equal(index.from, 'index')
   assert.match(index.body, /技能库总目录/)
@@ -86,7 +86,7 @@ test('路径穿越被挡住', () => {
     'C:\\Windows\\win.ini',
   ]
   for (const name of cases) {
-    const hit = readSkill(KEY, name)
+    const hit = readSkill(SESSION, name)
     assert.equal(hit, null, `${name} 不该被读到`)
   }
 })
@@ -97,7 +97,7 @@ test('超长正文会截断并说明', () => {
   fs.writeFileSync(path.join(ROOT, 'huge', 'SKILL.md'), 'x'.repeat(20000))
   resetLibraryCache()
 
-  const hit = readSkill(KEY, 'huge')
+  const hit = readSkill(SESSION, 'huge')
   assert.ok(hit)
   assert.ok(hit.body.length < 13000, `应该被截到 12000 附近，实际 ${hit.body.length}`)
   assert.match(hit.body, /只给了前 12000 字/)
@@ -105,7 +105,7 @@ test('超长正文会截断并说明', () => {
 
 test('list_skills 带 query 能搜到技能库', () => {
   makeLibrary()
-  const handlers = makeSkillHandlers(KEY)
+  const handlers = makeSkillHandlers(SESSION)
 
   const all = handlers.list_skills({})
   assert.match(all, /本地技能库共 2 个/)
@@ -118,7 +118,7 @@ test('list_skills 带 query 能搜到技能库', () => {
   const empty = handlers.list_skills({ query: 'zzz' })
   assert.match(empty, /没有匹配「zzz」/)
 
-  assert.equal(listSkills(KEY).length, 0, '本会话没写过技能')
+  assert.equal(listSkills(SESSION).length, 0, '本会话没写过技能')
 })
 
 function sanitize(key) {
