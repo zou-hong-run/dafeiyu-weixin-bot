@@ -28,6 +28,7 @@ export function prepareTestEnv() {
   // 落盘都往 tmp 里写，别碰真实的 data/ 和 downloads/。
   // DATA_DIR 也要改：有些模块（活跃度、清单、方案）加载时就会读写 data/ 下的文件
   process.env.DATA_DIR ||= path.join(projectRoot, 'tmp', 'test', 'data')
+  process.env.SKILLS_DIR ||= path.join(projectRoot, 'tmp', 'test', 'skills')
   process.env.TMP_DIR ||= path.join(projectRoot, 'tmp', 'test')
 
   return projectRoot

@@ -93,6 +93,14 @@ export function searchLibrary(query) {
   return all.filter((name) => name.toLowerCase().includes(q))
 }
 
+/**
+ * 清掉技能库缓存。技能库是外部目录，批量导入后不等 30 秒自然过期。
+ * 测试里改完目录也要调它，否则读到旧的。
+ */
+export function resetLibraryCache() {
+  libraryCache = null
+}
+
 export function libraryCount() {
   return librarySkills().length
 }

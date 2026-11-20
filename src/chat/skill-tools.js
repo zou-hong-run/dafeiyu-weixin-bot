@@ -84,12 +84,35 @@ export function makeSkillHandlers(key) {
       return `${result.existed ? '已更新' : '已记下'}技能「${result.name}」（${result.chars} 字，现在共 ${result.total} 个）。下一轮对话就能看到它。`
     },
 
-    list_skills: () => {
+    list_skills: ({ query } = {}) => {
       const skills = listSkills(key)
-      if (skills.length === 0) return '这个会话还没有技能。用 write_skill 记一个。'
-      return `共 ${skills.length} 个技能：\n${skills
-        .map((item) => `- ${item.name}${item.summary ? `：${item.summary}` : ''}（${item.chars} 字）`)
-        .join('\n')}`
+      const keyword = String(query ?? '').trim()
+      const lines = []
+
+      if (skills.length > 0) {
+        lines.push(`本会话的技能 ${skills.length} 个：`)
+        for (const item of skills) {
+          lines.push(`- ${item.name}${item.summary ? `：${item.summary}` : ''}（${item.chars} 字）`)
+        }
+      }
+
+      const matched = searchLibrary(keyword)
+      const total = libraryCount()
+
+      if (matched.length > 0) {
+        // 不带关键词时可能几百个，全列会撑爆一条消息，所以只给数量 + 提示怎么搜
+        const head = keyword
+          ? `本地技能库匹配「${keyword}」的有 ${matched.length} 个`
+          : `本地技能库共 ${total} 个`
+        lines.push(`${head}：`)
+        lines.push('  ' + matched.slice(0, 40).join('、') + (matched.length > 40 ? ` …（还有 ${matched.length - 40} 个，加关键词缩小范围）` : ''))
+        lines.push('读法：read_skill 传目录名，比如 read_skill name=<上面的某个名字>')
+      } else if (keyword) {
+        lines.push(`本地技能库里没有匹配「${keyword}」的目录（共 ${total} 个）。换个关键词试试，或者 read_skill name=SKILLS-INDEX.md 看总目录。`)
+      }
+
+      if (lines.length === 0) return '这个会话还没有技能，本地技能库也是空的。用 write_skill 记一个。'
+      return lines.join('\n')
     },
 
     read_skill: ({ name } = {}) => {
