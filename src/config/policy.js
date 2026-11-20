@@ -57,6 +57,9 @@ const SAFE_TOOLS = new Set([
   // 技能只影响自己的会话，名字里的 write/delete 是误伤
   'write_skill',
   'delete_skill',
+  // 定时任务：只能动自己会话的任务，而且 removeSchedule 自己会验创建者身份，
+  // 不靠白名单兜底。按单词匹配的话 remove 会被当成删文件
+  'remove_schedule',
 ])
 
 /** 这个工具要不要走白名单：先看名单，再看名字里的能力词 */
@@ -130,6 +133,12 @@ export const TOOL_POLICY = {
   // 代码同步
   git_sync: OPEN,
   git_status: READ_ONLY,
+
+  // 定时任务：只能指向当前会话自己的主人，加不出「给别人发广告」这种事，
+  // 数量也有上限（每会话 5 个、全局 20 个）兜着，所以不进高危名单
+  schedule_task: OPEN,
+  list_schedule: READ_ONLY,
+  remove_schedule: OPEN,
 
   // 扩展能力（前三个是真高危，靠 DANGEROUS_TOOLS 拦）
   add_mcp: OPEN,

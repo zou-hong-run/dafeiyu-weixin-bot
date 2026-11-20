@@ -4,8 +4,6 @@
 
 ## 一、改完必须跑
 
-项目目前没有单元测试，靠语法检查和启动冒烟：
-
 ```bash
 pnpm check   # 语法 + 模块加载 + 权限表自洽 + 单元测试（约 15 秒）
 pnpm test    # 只跑单元测试
@@ -33,8 +31,11 @@ pnpm start   # 启动冒烟：跑到「长轮询中」就说明链路通了，Ct
 | `tests/truncate.test.js` | 头尾保留、单行截断、落盘 |
 | `tests/limiter.test.js` | 并发上限、排队、异常不占名额 |
 | `tests/todos.test.js` | 清单状态、单 in_progress 约束、过期提醒 |
+| `tests/activity.test.js` | 活跃度落盘、推送门控 |
+| `tests/skills.test.js` | 技能读写、技能库检索 |
+| `tests/schedule.test.js` | cron 校验、按会话隔离、创建者才能删、推送目标只能是自己 |
 
-还值得补的：`src/chat/merge.js`（连发合并窗口）、`src/tasks/scheduler.js`（cron 解析）、`src/ops/activity.js`（推送门控判定）。
+还值得补的：`src/chat/merge.js`（连发合并窗口）、`src/chat/compaction.js`（压缩后是否丢了关键结论）。
 
 新加测试就放 `tests/<模块>.test.js`，`pnpm check` 会自动带上。
 

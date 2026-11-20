@@ -1,5 +1,5 @@
 import { env } from '../config/env.js'
-import { denyReason, isToolAllowed } from '../config/policy.js'
+import { denyReason, isAdmin, isToolAllowed } from '../config/policy.js'
 import { callTool } from '../mcp/client.js'
 import { auditSend, auditTool } from '../ops/audit.js'
 import { LOCAL_TOOL_NAMES, makeLocalHandlers } from './local-tools.js'
@@ -10,6 +10,7 @@ import { createLimiter } from './limiter.js'
 import { log } from '../ops/logger.js'
 import { SKILL_TOOL_NAMES, makeSkillHandlers } from './skill-tools.js'
 import { GIT_TOOL_NAMES, makeGitHandlers } from './git-tools.js'
+import { SCHEDULE_TOOL_NAMES, makeScheduleHandlers } from './schedule-tools.js'
 
 // 工具执行层：对话和后台工单共用同一套权限判断和分流逻辑。
 //
@@ -65,6 +66,12 @@ export async function runTool(name, args, { key, actor = '', send } = {}) {
 
     if (PLAN_TOOL_NAMES.has(name)) {
       const handlers = makePlanHandlers(key)
+      return String(await handlers[name](args ?? {}))
+    }
+
+    // 定时任务：删除要验身份，所以把 actor 和是不是管理员一并交给 handler
+    if (SCHEDULE_TOOL_NAMES.has(name)) {
+      const handlers = makeScheduleHandlers(key, { actor, isAdmin: isAdmin(actor) })
       return String(await handlers[name](args ?? {}))
     }
 

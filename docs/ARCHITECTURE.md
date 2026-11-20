@@ -13,12 +13,17 @@ src/
 │   ├── agent.js       后台任务引擎：多轮工具、进度回调、验收
 │   ├── tool-runner.js 工具执行层（权限 + 分流 + 审计），对话和工单共用
 │   ├── local-tools.js 记忆类工具（直接读写 memory.json）
+│   ├── todo-tools.js  任务清单工具
+│   ├── skill-tools.js 技能工具（按会话隔离，读写走 skills/store.js）
+│   ├── schedule-tools.js 定时任务工具（target 从会话键反解，不给收件人参数）
+│   ├── git-tools.js   代码同步工具
 │   ├── media-tools.js 媒体发送工具（图片/文件/视频/音频）
+│   ├── compaction.js  历史压缩成交接摘要
 │   ├── merge.js       连发合并
 │   └── persona.js     人格
 ├── memory/       三层记忆（短期 / 摘要 / 长期）
 ├── mcp/          MCP 客户端：子进程管理、工具注册、调用与超时
-├── mcp-server/   工具服务（独立 Node 子进程，24 个工具）
+├── mcp-server/   工具服务（独立 Node 子进程，28 个工具）
 ├── tasks/        工单与定时
 │   ├── ticket.js      工单状态机，落盘可恢复
 │   ├── worker.js      工单执行器
@@ -153,7 +158,9 @@ startTask（worker.js）
 ## 定时任务流程
 
 ```
-用户 /schedule <cron> <任务>
+两条入口，落到同一个 addSchedule
+  · 用户发 /schedule <cron> <任务>
+  · 模型自己调 schedule_task（工具层，从会话键反解 target）
   ↓  addSchedule → data/schedules.json，记录 createdBy
 scheduler tick（每 20 秒）
   ↓  cronMatches（用 cron-parser）
@@ -165,6 +172,11 @@ fire()
   ↓  超过 PUSH_MAX_IDLE_MINUTES 没说话 → 放弃，记日志
 sendMessage → sendToUser
 ```
+
+`schedule_task` 的 `target` 是写死的：从会话键反解出 `tenantId` 和 `userId`，
+工具参数里没有「收件人」这一项——模型没法拿它给第三个人发消息。
+数量上限在调度层（每会话 5 个、全局 20 个），身份校验也在调度层
+（`remove_schedule` 只有创建者本人或管理员能动）。
 
 补跑：进程没运行时错过的触发点，启动后 6 小时内补一次（同一个时间点只补一次）。
 
@@ -183,6 +195,10 @@ sendMessage → sendToUser
 | 都没配 | **默认拒绝** |
 
 另外按工具名的能力词兜底（`write` `exec` `install` 等），防止以后注册进来的新工具默认开放。
+
+定时任务三个工具不进高危名单，理由要写清：`schedule_task` 的收件人由会话键写死（见上一节），
+加不出「给别人发消息」；`remove_schedule` 名字里的 `remove` 会命中毒词表，所以显式列进
+`SAFE_TOOLS`——它自己会验创建者身份，不靠白名单兜底。数量上限在调度层。
 
 **2. 工具执行与审计**（`src/chat/tool-runner.js`）
 

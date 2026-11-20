@@ -119,6 +119,9 @@ Linux 上比 Windows 多两层防护：bubblewrap 内核沙箱（装才有）和
 
 **定时任务**
 
+直接跟它说「每天早上八点半提醒我今天的日程」就行，它自己会用 `schedule_task` 建好。
+也可以自己敲命令：
+
 | 命令 | 作用 |
 |---|---|
 | `/schedule <cron> <任务>` | 加一条，如 `/schedule 0 9 * * * 每天早上说句早安` |
@@ -127,9 +130,13 @@ Linux 上比 Windows 多两层防护：bubblewrap 内核沙箱（装才有）和
 
 cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT` 就不推送。
 
+推送有个真实限制：到点时你如果超过 `PUSH_MAX_IDLE_MINUTES`（默认 30 分钟）没说过话，
+token 大概率已失效，这条就发不出来。所以定时点最好放在你本来就会说话的时候，
+或者到点前随手发一句。
+
 ## 能力
 
-**24 个工具**（跑在独立子进程里）：
+**28 个 MCP 工具**（跑在独立子进程里）：
 
 | 类别 | 工具 |
 |---|---|
@@ -142,7 +149,7 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 视频 | `find_video` `fetch_video` `video_meta` `read_video_subtitle` |
 | 扩展 | `add_mcp` `list_mcp` `remove_mcp` `install_package` |
 
-**17 个本地工具**（主进程内，不走子进程）：
+**20 个本地工具**（主进程内，不走子进程）：
 
 | 类别 | 工具 |
 |---|---|
@@ -152,6 +159,7 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 记忆 | `remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` |
 | 发送 | `send_image` `send_file` `send_video` `send_audio` |
 | 代码同步 | `git_sync` `git_status` |
+| 定时任务 | `schedule_task` `list_schedule` `remove_schedule` |
 
 **代码自动同步**：配 `AUTO_SYNC_MINUTES` 后，它会定时把自己改的代码提交推送，再把远端更新拉下来合并。冲突会中止并报出来，不自动解。也可以直接说「同步一下代码」（`git_sync`，管理员可用）。
 

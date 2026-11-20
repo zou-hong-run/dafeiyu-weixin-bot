@@ -24,3 +24,15 @@ export function userIdOf(key) {
   if (at >= 0) return text.slice(at + 6)
   return text.replace(/^user:/, '')
 }
+
+/**
+ * 从会话键里取出账号 id。
+ *
+ * 定时任务的推送目标要带 tenantId，而工具层只拿得到会话键——
+ * `/schedule` 命令能直接读 event，工具拿不到，只能从键里反解。
+ * 没带前缀的旧键（`user:<id>`）返回空串，调用方按「用默认账号」处理。
+ */
+export function tenantIdOf(key) {
+  const at = String(key ?? '').lastIndexOf(':user:')
+  return at > 0 ? String(key).slice(0, at) : ''
+}

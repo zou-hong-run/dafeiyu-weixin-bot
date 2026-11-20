@@ -17,6 +17,7 @@ import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
 import { SKILL_TOOLS } from './skill-tools.js'
 import { GIT_TOOLS } from './git-tools.js'
+import { SCHEDULE_TOOLS } from './schedule-tools.js'
 import { skillsPrompt } from '../skills/store.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
 import { mimeOf } from '../channel/incoming.js'
@@ -46,7 +47,8 @@ const TOOL_RULES = `工具使用：
 - 点完歌就报歌名和歌手，别念工具返回里的「跳过最近给过的 N 首」这类内部细节，也别每次都强调「这是试听」
 - 视频链接：先用 find_video 看时长和体积，再决定要不要用 fetch_video 截一段发。整部电影几百 MB 下不动，直接说做不到
 - 用户问「这个视频讲了什么」：先 video_meta 拿标题和简介，再 read_video_subtitle 拿字幕。两样都没有就直说拿不到，别拿画面猜内容
-- B 站这类站点常报 412 或直链失效，先 download 存到本地再 send_video，别反复用同一个直链硬试`
+- B 站这类站点常报 412 或直链失效，先 download 存到本地再 send_video，别反复用同一个直链硬试
+- 定时任务：对方说「每天早上提醒我」「每周一帮我整理」这类要求，直接用 schedule_task 加，不要回一句「你发 /schedule」把活推回去。加之前先用 list_schedule 看一眼别重复；prompt 要写到点能独立执行（那时没有对话上下文）。加完必须把「到点前 ${env.pushMaxIdleMinutes} 分钟内没说过话就推不出去」这条告诉他`
 
 /** 本地图片 → 视觉通道的 image_url 块。读不到或不是图片就跳过，别让一张图卡住整轮 */
 function imagePart(file) {
@@ -202,6 +204,7 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
     ...TODO_TOOLS,
     ...SKILL_TOOLS,
     ...GIT_TOOLS,
+    ...SCHEDULE_TOOLS,
     ...(send ? MEDIA_TOOLS : []),
     ...toDeepSeekTools(filterTools(getTools(), actor)),
   ]
