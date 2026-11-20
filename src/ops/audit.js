@@ -7,10 +7,22 @@ import { log } from './logger.js'
 //
 // 落盘走 logger（logs/bot-日期.log），所以事后能翻。
 
+// 这些字段内容可能很长、也可能含敏感信息（写文件的内容、方案正文），
+// 审计只需要知道「调了哪个工具、动到哪」，不需要把内容抄一遍
+const SENSITIVE_FIELDS = new Set(['content', 'plan', 'text', 'code'])
+
 function summarizeArgs(args) {
   if (args == null) return ''
   try {
-    const text = JSON.stringify(args)
+    const copy = {}
+    for (const [key, value] of Object.entries(args)) {
+      if (SENSITIVE_FIELDS.has(key)) {
+        copy[key] = `（${String(value ?? '').length} 字符，不记录内容）`
+        continue
+      }
+      copy[key] = value
+    }
+    const text = JSON.stringify(copy)
     if (!text || text === '{}') return ''
     return ` ${text.length > 280 ? `${text.slice(0, 280)}…` : text}`
   } catch {

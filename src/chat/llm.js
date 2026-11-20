@@ -1,6 +1,7 @@
 import OpenAI from 'openai'
 import { env } from '../config/env.js'
 import { createLimiter } from './limiter.js'
+import { log } from '../ops/logger.js'
 
 // 模型调用的统一入口。
 //
@@ -29,7 +30,7 @@ export function complete(body) {
   return llmLimiter.run(() => client.chat.completions.create(body), {
     onWait: (ms) => {
       // 排队超过 3 秒说明并发打满了，值得记一笔——长期频繁出现就该调大 LLM_CONCURRENCY
-      if (ms > 3000) console.warn(`[限流] 模型调用排队 ${Math.round(ms / 1000)} 秒`)
+      if (ms > 3000) log.warn(`[限流] 模型调用排队 ${Math.round(ms / 1000)} 秒`)
     },
   })
 }

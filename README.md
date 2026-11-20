@@ -93,12 +93,14 @@ Linux 上比 Windows 多两层防护：bubblewrap 内核沙箱（装才有）和
 
 | 命令 | 作用 |
 |---|---|
+| `/help` | 命令清单 |
 | `/reset` | 清空当前对话记忆 |
 | `/memory` | 看记忆用量 |
 | `/id` | 看机器人自己的 userId |
 | `/tools` | 看当前有哪些工具 |
 | `/config` | 看当前配置 |
-| `/diag` | 自检（登录状态、运行时长、工单、定时任务） |
+| `/diag` | 自检（登录状态、运行时长、工单、定时任务、并发、限流） |
+| `/tenants` | 看这个进程托管了哪些微信账号 |
 
 **后台工单**：长任务丢后台跑，中途汇报进度，不阻塞聊天
 
@@ -140,7 +142,7 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 视频 | `find_video` `fetch_video` `video_meta` `read_video_subtitle` |
 | 扩展 | `add_mcp` `list_mcp` `remove_mcp` `install_package` |
 
-**15 个本地工具**（主进程内，不走子进程）：
+**17 个本地工具**（主进程内，不走子进程）：
 
 | 类别 | 工具 |
 |---|---|
@@ -149,6 +151,7 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 技能 | `write_skill` `list_skills` `read_skill` `delete_skill` |
 | 记忆 | `remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` |
 | 发送 | `send_image` `send_file` `send_video` `send_audio` |
+| 代码同步 | `git_sync` `git_status` |
 
 **代码自动同步**：配 `AUTO_SYNC_MINUTES` 后，它会定时把自己改的代码提交推送，再把远端更新拉下来合并。冲突会中止并报出来，不自动解。也可以直接说「同步一下代码」（`git_sync`，管理员可用）。
 

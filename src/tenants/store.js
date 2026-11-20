@@ -99,17 +99,6 @@ export function createTenant({ name, id: fixedId } = {}) {
   return meta
 }
 
-export function renameTenant(id, name) {
-  const tenant = getTenant(id)
-  if (!tenant) throw new Error(`没有这个租户：${id}`)
-  const label = String(name ?? '').trim().slice(0, 40)
-  if (!label) throw new Error('名字不能为空')
-
-  const meta = { ...tenant, name: label }
-  fs.writeFileSync(metaFile(tenant.id), JSON.stringify(meta, null, 2), { mode: 0o600 })
-  return meta
-}
-
 /** 删租户：连凭证一起删，删了要重新扫码 */
 export function removeTenant(id) {
   const clean = safeId(id)

@@ -96,15 +96,6 @@ export function getClient(tenantId) {
   return clients.get(String(tenantId ?? '')) ?? null
 }
 
-export function startedTenants() {
-  return [...clients.keys()]
-}
-
-/** 这个租户在不在跑 */
-export function isRunning(tenantId) {
-  return clients.has(String(tenantId ?? ''))
-}
-
 /**
  * 开始扫码登录。立即返回会话 id，二维码和状态通过 getSession() 轮询。
  * @returns {{sid: string, tenantId: string}}

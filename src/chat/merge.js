@@ -94,19 +94,6 @@ function queue(key, entry, body, event, windowMs, maxChars, handler) {
   entry.timer.unref?.()
 }
 
-/** 清掉某个会话还在等的合并批次（/reset 时用，别再把这些话拼进去） */
-export function clearMerged(sessionKey) {
-  const prefix = `${sessionKey}\u0000`
-  let removed = 0
-  for (const [key, entry] of slots) {
-    if (!key.startsWith(prefix)) continue
-    clearTimeout(entry.timer)
-    slots.delete(key)
-    removed += 1
-  }
-  return removed
-}
-
 /** 清掉所有还在等的合并批次（进程退出时用，顺便知道丢了几批） */
 export function clearAllMerged() {
   let removed = 0
@@ -118,9 +105,3 @@ export function clearAllMerged() {
   return removed
 }
 
-/** 进程退出或该会话关闭时，把攒着的立刻交出去，别丢消息 */
-export function flushMerged(handler) {
-  for (const [key, entry] of slots) {
-    flush(key, entry, handler)
-  }
-}

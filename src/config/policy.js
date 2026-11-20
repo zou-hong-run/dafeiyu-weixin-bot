@@ -147,7 +147,6 @@ export const TOOL_POLICY = {
   // 其它
   download: OPEN,
   draw_pixel: OPEN,
-  bytearray: READ_ONLY,
 
   // 媒体发送（微信没有语音消息；音频走文件通道，自动转 mp3）
   send_image: OPEN,

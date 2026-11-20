@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { WeChatBot, stripMarkdown, MessageItemType } from '@wechatbot/wechatbot'
 import { env } from '../config/env.js'
-import { sdkLogger } from '../ops/logger.js'
+import { log, sdkLogger } from '../ops/logger.js'
 
 // 微信 iLink 的适配层。
 //
@@ -109,6 +109,9 @@ export function createWechatClient({ tenantId, storageDir }) {
 
     const text = String(source ?? '')
     if (/^https?:\/\//i.test(text)) {
+      // 上层虽然校验过，这层也过一遍：readSource 是真正发起请求的地方，
+      // 只靠调用方自觉的话，以后多一个调用点就多一个洞
+      await assertPublicUrlResolved(text)
       const response = await fetch(text, { signal: AbortSignal.timeout(DOWNLOAD_TIMEOUT_MS) })
       if (!response.ok) throw new Error(`下载失败 HTTP ${response.status}`)
       const buffer = Buffer.from(await response.arrayBuffer())
@@ -170,7 +173,7 @@ export function createWechatClient({ tenantId, storageDir }) {
         lastError = error
         const message = String(error?.message ?? error)
         if (i === attempts || !RETRYABLE.test(message)) throw error
-        console.warn(`[发送:${tenantId}] 第 ${i} 次失败（${message.slice(0, 60)}），${400 * i}ms 后重试`)
+        log.warn(`[发送:${tenantId}] 第 ${i} 次失败（${message.slice(0, 60)}），${400 * i}ms 后重试`)
         await sleep(400 * i)
       }
     }
@@ -282,7 +285,7 @@ export function createWechatClient({ tenantId, storageDir }) {
       try {
         await handler(event)
       } catch (error) {
-        console.error(`[wechat:${tenantId}] 处理消息失败：`, error?.message ?? error)
+        log.error(`[wechat:${tenantId}] 处理消息失败`, { error: error?.message ?? String(error) })
       }
     })
   }

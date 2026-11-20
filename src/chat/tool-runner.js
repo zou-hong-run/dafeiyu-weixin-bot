@@ -7,6 +7,7 @@ import { MEDIA_TOOL_NAMES, makeMediaHandlers } from './media-tools.js'
 import { TODO_TOOL_NAMES, makeTodoHandlers } from './todo-tools.js'
 import { PLAN_TOOL_NAMES, makePlanHandlers } from './plan-tools.js'
 import { createLimiter } from './limiter.js'
+import { log } from '../ops/logger.js'
 import { SKILL_TOOL_NAMES, makeSkillHandlers } from './skill-tools.js'
 import { GIT_TOOL_NAMES, makeGitHandlers } from './git-tools.js'
 
@@ -43,7 +44,7 @@ export async function runTool(name, args, { key, actor = '', send } = {}) {
   }
 
   if (env.toolDebug) {
-    console.log(`[工具] ${name}(${JSON.stringify(args ?? {}).slice(0, 160)})`)
+    log.info(`[工具] ${name}(${JSON.stringify(args ?? {}).slice(0, 160)})`)
   }
 
   try {

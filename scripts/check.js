@@ -77,12 +77,16 @@ pass(`${syntaxOk}/${files.length} 个文件语法通过`)
 
 // ── 2. 模块加载 ──
 // index.js 会真的启动机器人，跳过；其余都试着 import 一遍
-// index.js 会启动机器人；scripts/ 下的脚本 import 就执行（有的直接 exit）。
-// 这两类只做语法检查，不做加载检查。
+// 这几类只做语法检查，不做加载检查：
+//   · src/index.js         —— import 就启动机器人
+//   · src/mcp-server/index.js —— MCP 服务入口，import 就开始等 stdio，会挂住
+//   · scripts/ 下的脚本    —— import 就执行（有的直接 process.exit）
+const SKIP_LOAD = new Set(['src/index.js', 'src/mcp-server/index.js'])
 const SKIP_LOAD_PREFIX = ['scripts/']
+
 const moduleTargets = files.filter((file) => {
   const name = rel(file)
-  if (name === 'src/index.js') return false
+  if (SKIP_LOAD.has(name)) return false
   return !SKIP_LOAD_PREFIX.some((prefix) => name.startsWith(prefix))
 })
 let loadOk = 0

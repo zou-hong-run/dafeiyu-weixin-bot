@@ -261,50 +261,6 @@ export function removeSchedule(id, sessionKey, { actor = '', isAdmin = false } =
   return removed
 }
 
-/**
- * 改任务：时间、内容、启停。
- *
- * 之前只有增和删，想改一句话得删了重建——建出来的 id 变了，
- * 之前记住的 id 就失效了。现在能就地改。
- *
- * 改 cron 时把 lastRunAt 一起刷新：否则补跑逻辑会拿新 cron 去算「上次该跑的时刻」，
- * 把刚改完的任务立刻补发一条。
- */
-export function updateSchedule(id, sessionKey, patch = {}, { actor = '', isAdmin = false } = {}) {
-  const { target } = locateTask(id, sessionKey, { actor, isAdmin, action: '改' })
-
-  const next = {}
-
-  if (patch.cron !== undefined) {
-    const error = validateCron(patch.cron)
-    if (error) throw new Error(error)
-    next.cron = String(patch.cron).trim()
-  }
-
-  if (patch.prompt !== undefined) {
-    const text = String(patch.prompt ?? '').trim()
-    if (text.length < 5) throw new Error('任务描述太短，写清楚到点要做什么')
-    next.prompt = text.slice(0, 1000)
-  }
-
-  if (patch.enabled !== undefined) {
-    next.enabled = Boolean(patch.enabled)
-  }
-
-  if (Object.keys(next).length === 0) {
-    throw new Error('没有要改的字段：cron（时间）/ prompt（内容）/ enabled（启停）至少给一个')
-  }
-
-  Object.assign(target, next)
-  if (next.cron !== undefined || next.enabled === true) {
-    // 时间变了或者重新启用：把基准时间挪到现在，别让它立刻补发一条
-    target.lastRunAt = Date.now()
-  }
-
-  persist()
-  return target
-}
-
 // 群被解散/机器人被踢出去后，QQ 会一直回 11255，这种重试和自愈都没意义，直接停用任务
 const TARGET_GONE_RE = /code\(11255\)|用户\/群已注销|请求的资源不存在/
 

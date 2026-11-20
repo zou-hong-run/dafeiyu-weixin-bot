@@ -1,5 +1,6 @@
 import { env } from '../config/env.js'
 import { complete } from './llm.js'
+import { log } from '../ops/logger.js'
 
 // 上下文压缩。
 //
@@ -80,7 +81,7 @@ export async function compactConversation({ messages, previousSummary = '', extr
 
     return String(response.choices[0]?.message?.content ?? '').trim()
   } catch (error) {
-    console.error('[压缩] 调模型失败：', error?.message ?? error)
+    log.error('[压缩] 调模型失败', { error: error?.message ?? String(error) })
     return ''
   }
 }

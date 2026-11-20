@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { paths } from '../config/paths.js'
+import { log } from '../ops/logger.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -59,7 +60,7 @@ function persist() {
     fs.writeFileSync(`${planFile}.tmp`, JSON.stringify(state, null, 2))
     fs.renameSync(`${planFile}.tmp`, planFile)
   } catch (error) {
-    console.error('[规划] 落盘失败：', error?.message ?? error)
+    log.error('[规划] 落盘失败', { error: error?.message ?? String(error) })
   }
 }
 

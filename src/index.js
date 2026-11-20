@@ -10,7 +10,7 @@ import { runTaskAgent } from './chat/agent.js'
 import { cleanupIncoming, describeInbound } from './channel/incoming.js'
 import { sendReply } from './channel/sender.js'
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
-import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
+import { evictIdleSessions, flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { flushTodos } from './chat/todos.js'
 import { cleanupSpill } from './chat/truncate.js'
 import { startAutoSync } from './ops/git-sync.js'
@@ -283,7 +283,7 @@ const COMMANDS = {
       `· 当前账号：${tenantId}${client?.selfId() ? `（${client.selfId()}）` : '（未运行）'}`,
       `· 账号总数：${tenants.length} 个，运行中 ${tenants.filter((t) => t.running).length} 个`,
       `· 运行：${formatDuration(Date.now() - startedAt)}`,
-      `· 工具：${tools.length} 个 MCP 工具 + 15 个本地工具`,
+      `· 工具：${tools.length} 个 MCP 工具 + 17 个本地工具`,
       `· 记忆：短期 ${s.shortTerm} 轮、摘要 ${s.midTermChars} 字、长期 ${s.longTerm} 条`,
       `· 工单：在跑 ${workers.length} 个`,
       `· 定时：${sched.total} 条（启用 ${sched.enabled}），上次检查 ${sched.tickAgeSeconds ?? '?'} 秒前`,
@@ -676,6 +676,15 @@ async function main() {
       // 工具输出落盘的文件也别一直堆着
       const spill = cleanupSpill(24)
       if (spill > 0) log.info(`回收工具输出 ${spill} 个`)
+
+      // 闲置会话回收：短期记忆是「这次聊天」，隔太久就该忘；
+      // 长期事实（remember 写的）不受影响
+      if (env.sessionTtlHours > 0) {
+        const evicted = evictIdleSessions(env.sessionTtlHours * 3600_000)
+        if (evicted.cleared > 0 || evicted.removed > 0) {
+          log.info(`回收闲置会话：清空 ${evicted.cleared} 个，删除 ${evicted.removed} 个空壳`)
+        }
+      }
     } catch (error) {
       log.warn('清理失败', { error: error?.message ?? String(error) })
     }

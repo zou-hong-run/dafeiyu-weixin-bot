@@ -68,15 +68,6 @@ export function canPushTo(key, maxIdleMinutes = env.pushMaxIdleMinutes) {
   return idleMinutesOf(key) <= maxIdleMinutes
 }
 
-/** 最近活跃过的会话，按时间倒序 */
-export function recentActiveSessions(withinMs = 30 * 60_000) {
-  const now = Date.now()
-  return Object.entries(state)
-    .filter(([, at]) => now - Number(at) <= withinMs)
-    .map(([key, at]) => ({ key, at: Number(at) }))
-    .sort((a, b) => b.at - a.at)
-}
-
 export function flushActivity() {
   flush()
 }

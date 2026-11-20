@@ -39,13 +39,6 @@ export function defaultEnvFile() {
   return '/etc/wechatbot/env'
 }
 
-/** 当前是不是 root / 管理员，装系统依赖和配自启要用 */
-export function isElevated() {
-  // Windows 装包走 winget，不需要管理员；这里只用来决定 apt 要不要加 sudo
-  if (isWindows) return false
-  return process.getuid?.() === 0
-}
-
 const MB = 1024 * 1024
 
 function readLinuxMemory() {

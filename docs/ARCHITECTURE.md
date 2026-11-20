@@ -120,6 +120,8 @@ SDK reply（带回入站消息的 context_token）
 
 摘要存在 `data/memory.json` 的 `midTerm`，上限 4000 字。
 
+另外每小时做一次闲置回收：超过 `SESSION_TTL_HOURS`（默认 24 小时）没说话的会话，短期记忆和摘要清空，长期事实保留。运行时数据（工单、定时、清单、方案）不在回收范围内。
+
 ## 工单流程
 
 ```
@@ -186,7 +188,7 @@ sendMessage → sendToUser
 
 所有工具调用都过同一个函数：权限检查 → 分流 → 审计。**被拒绝的调用也记**，那是唯一能看出"有人在尝试越权"的信号。
 
-审计写进 `logs/bot-日期.log`。
+审计写进 `logs/bot-日期.log`。参数里的 `content` / `plan` / `text` / `code` 这类字段只记长度不记内容——审计要的是「调了什么、动到哪」，不该把用户写的东西再抄一份进日志。
 
 **3. 文件系统**（`src/ops/file-policy.js` + `fs-tools.js` 的 `resolveSafe`）
 

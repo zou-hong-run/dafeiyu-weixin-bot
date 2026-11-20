@@ -94,14 +94,6 @@ function pruneArchive(dir) {
   }
 }
 
-/** 这段历史之外，还有多少轮已经被压进摘要了 */
-export function elisionInfo(key) {
-  const entry = getSession(key)
-  const rounds = Number(entry.elidedRounds) || 0
-  const tokens = Number(entry.elidedTokens) || 0
-  return rounds > 0 ? { rounds, tokens } : null
-}
-
 function persist() {
   try {
     fs.mkdirSync(dataDir, { recursive: true })
@@ -362,19 +354,6 @@ export function evictIdleSessions(ttlMs) {
 }
 
 // 列出最近有活动的会话，重启播报要用
-export function recentSessions(withinMs = 30 * 60_000) {
-  const now = Date.now()
-  return Object.entries(state.sessions)
-    .filter(([, session]) => now - (session.updatedAt ?? 0) <= withinMs)
-    .map(([key, session]) => ({
-      key,
-      updatedAt: session.updatedAt ?? 0,
-      shortTerm: session.shortTerm.length / 2,
-      longTerm: Array.isArray(session.longTerm) ? session.longTerm.length : 0,
-    }))
-    .sort((a, b) => b.updatedAt - a.updatedAt)
-}
-
 export function reset(key) {
   state.sessions[key] = blank()
   scheduleSave()

@@ -29,6 +29,7 @@ pnpm start   # 启动冒烟：跑到「长轮询中」就说明链路通了，Ct
 | `tests/shell-guard.test.js` | 命令拦截：删根目录、读密钥、Windows 反斜杠、全角绕过 |
 | `tests/policy.test.js` | 权限三档、SAFE_TOOLS 不误判、权限表完整性 |
 | `tests/file-policy.test.js` | 敏感路径黑名单、路径穿越 |
+| `tests/net-guard.test.js` | 内网/云元数据地址拦截、协议校验 |
 | `tests/truncate.test.js` | 头尾保留、单行截断、落盘 |
 | `tests/limiter.test.js` | 并发上限、排队、异常不占名额 |
 | `tests/todos.test.js` | 清单状态、单 in_progress 约束、过期提醒 |

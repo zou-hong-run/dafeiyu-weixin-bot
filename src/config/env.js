@@ -79,6 +79,9 @@ export const env = {
   // 多实例部署同一个仓库时只能在一个实例上开，否则会互相冲突。
   autoSyncMinutes: nonNegativeNumber('AUTO_SYNC_MINUTES', 0),
 
+  // 闲置会话回收：多久没说话就清空短期记忆（长期事实永远保留）。0 = 不回收
+  sessionTtlHours: nonNegativeNumber('SESSION_TTL_HOURS', 24),
+
   // 收到的图片/文件留多久（小时），到点自动删
   mediaTtlHours: positiveNumber('MEDIA_TTL_HOURS', 24),
 
