@@ -65,14 +65,24 @@ test('上限至少是 1', async () => {
 
 test('stats 能反映排队情况', async () => {
   const limiter = createLimiter('test', 1)
-  const running = limiter.run(async () => sleep(30))
-  await sleep(5)
 
-  // 第二个会排队
-  const queued = limiter.run(async () => sleep(5))
-  await sleep(5)
-  assert.ok(limiter.stats().queued >= 1)
+  // 用闸门卡住第一个任务，而不是靠 sleep 计时——
+  // CI 上负载高的时候 5ms 可能早就过完，断言会假失败
+  let release
+  const gate = new Promise((resolve) => {
+    release = resolve
+  })
 
-  await Promise.all([running, queued])
+  const first = limiter.run(async () => {
+    await gate
+  })
+  // 让第一个真正进入执行
+  await Promise.resolve()
+
+  const second = limiter.run(async () => {})
+  assert.equal(limiter.stats().queued, 1, '第一个还卡着，第二个应该在排队')
+
+  release()
+  await Promise.all([first, second])
   assert.equal(limiter.stats().queued, 0)
 })

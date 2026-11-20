@@ -21,17 +21,19 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # 拆成两步：失败时一眼看出是测试挂了还是别的检查挂了。
-      # 顺手把失败详情拆成 annotation，GitHub API 能直接读出来。
+      # 拆成两步：一眼看出是测试挂了还是别的检查挂了。
+      # 失败摘要塞进**一条** annotation（GitHub 每步最多 10 条，逐行发会被丢掉）。
       - name: 单元测试
         run: |
           set -o pipefail
           if pnpm test 2>&1 | tee /tmp/test.log; then
             exit 0
           fi
-          tail -40 /tmp/test.log | while IFS= read -r line; do
-            [ -n "$line" ] && echo "::error ::${line:0:300}"
-          done
+          echo "===== 失败详情 ====="
+          tail -60 /tmp/test.log
+          echo "===== 结束 ====="
+          SUMMARY=$(grep -E "not ok|Error|expected|actual|AssertionError" /tmp/test.log | head -6 | tr '\n' ' ' | cut -c1-400)
+          echo "::error title=单元测试失败::${SUMMARY:-见日志}"
           exit 1
 
       - name: 全量检查
@@ -40,7 +42,9 @@ jobs:
           if pnpm check 2>&1 | tee /tmp/check.log; then
             exit 0
           fi
-          tail -40 /tmp/check.log | while IFS= read -r line; do
-            [ -n "$line" ] && echo "::error ::${line:0:300}"
-          done
+          echo "===== 失败详情 ====="
+          tail -60 /tmp/check.log
+          echo "===== 结束 ====="
+          SUMMARY=$(grep -E "^✗|没通过|not ok|Error" /tmp/check.log | head -6 | tr '\n' ' ' | cut -c1-400)
+          echo "::error title=检查失败::${SUMMARY:-见日志}"
           exit 1
