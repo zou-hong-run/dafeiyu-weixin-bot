@@ -10,6 +10,8 @@ import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
 import { TODO_TOOLS } from './todo-tools.js'
 import { getTodos, renderTodos, staleReminder } from './todos.js'
+import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
+import { PLAN_TOOLS } from './plan-tools.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
 import { mimeOf } from '../channel/incoming.js'
 
@@ -78,6 +80,10 @@ function systemPrompt(key) {
   const self = selfDoc()
   if (self) lines.push(`【关于你自己】
 ${self}`)
+
+  // 规划模式：只说清楚「现在只能读」
+  const plan = getPlan(key)
+  if (plan) lines.push(planModePrompt(plan))
 
   // 任务清单挂在提示词里，模型每轮都看得到自己在第几步
   const todos = renderTodos(getTodos(key))
@@ -174,12 +180,18 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
     { role: 'user', content: userContent },
   ]
 
-  const tools = [
+  const allTools = [
     ...LOCAL_TOOLS,
     ...TODO_TOOLS,
     ...(send ? MEDIA_TOOLS : []),
     ...toDeepSeekTools(filterTools(getTools(), actor)),
   ]
+
+  // 规划模式只给只读工具，外加一个提交方案的出口。
+  // 这个过滤是硬的：模型看不到写文件和执行命令的工具，想「边规划边顺手做」也做不到。
+  const tools = isPlanning(key)
+    ? [...PLAN_TOOLS, ...allTools.filter((tool) => PLAN_MODE_TOOLS.has(tool.function?.name))]
+    : allTools
 
   let answer = ''
   let exhausted = false

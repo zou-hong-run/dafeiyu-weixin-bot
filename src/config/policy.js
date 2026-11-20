@@ -45,7 +45,7 @@ function normalizeToolName(name) {
  * `todo_write` 会被当成「写文件」类工具，对非管理员直接拒绝，
  * 结果就是清单功能对所有人都不可用。
  */
-const SAFE_TOOLS = new Set(['todo_write'])
+const SAFE_TOOLS = new Set(['todo_write', 'exit_plan_mode'])
 
 /** 这个工具要不要走白名单：先看名单，再看名字里的能力词 */
 export function isDangerousTool(name) {
@@ -106,6 +106,8 @@ export const TOOL_POLICY = {
 
   // 任务清单（模型自己记进度用，不涉及外部副作用）
   todo_write: OPEN,
+  // 规划模式的出口：只是把方案交出来，不动系统
+  exit_plan_mode: OPEN,
 
   // 记忆
   remember: OPEN,

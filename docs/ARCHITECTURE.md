@@ -196,6 +196,7 @@ Windows 上没有 OS 级沙箱（bwrap 只有 Linux 有）。所以 shell 的隔
 | `data/schedules.json` | 定时任务（含 target.tenantId） | 是 |
 | `data/activity.json` | 各会话最后活跃时间 | 否 |
 | `data/todos.json` | 各会话的任务清单（多步任务的进度） | 否 |
+| `data/plans.json` | 规划模式下的方案（提交后等确认） | 否 |
 | `data/music-cache.json` | 推过哪些歌（防重复） | 否 |
 | `logs/bot-日期.log` | 运行日志 + 审计 | 是 |
 | `downloads/` | 收发的文件 | 是 |

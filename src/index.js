@@ -11,6 +11,7 @@ import { sendReply } from './channel/sender.js'
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { flushTodos } from './chat/todos.js'
+import { cancelPlan, enterPlan, exitPlan, flushPlans, getPlan, isPlanning, planReady } from './chat/plan.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
 import { acquireInstanceLock } from './ops/instance.js'
 import { log } from './ops/logger.js'
@@ -142,7 +143,8 @@ const COMMANDS = {
     '/tenants 看这个进程托管了哪些微信账号',
     '',
     '后台工单（长任务丢后台跑，中途汇报进度）',
-    '/task <要做的事> 起一个工单',
+    '/plan <要做的事> 先出方案，你确认后再执行（复杂任务推荐）',
+    '/task <要做的事> 直接起一个工单',
     '/tasks 看正在跑的工单',
     '/kill <工单号> 中止',
     '',
@@ -253,6 +255,18 @@ const COMMANDS = {
     ].join('\n')
   },
 
+  '/plan': (key, rest, event) => {
+    const task = String(rest ?? '').trim()
+    if (!task) return '用法：/plan 要做的事\n\n进入规划模式：我只看不改，先给方案，你说执行我再动手。'
+
+    if (isPlanning(key)) return '已经在规划中了。方案给你之后回「执行」，或者直接说哪里要改。'
+
+    enterPlan(key, task)
+    // 立刻排一轮规划对话，不用你再说一遍
+    enqueue(key, () => handleMessage(event, task))
+    return '进入规划模式，先摸清楚情况再给方案，不动任何东西。'
+  },
+
   '/task': (key, rest, event) => {
     const goal = String(rest ?? '').trim()
     if (!goal) return '用法：/task 要做的事'
@@ -326,6 +340,39 @@ async function handleMessage(event, overrideText = '') {
     return
   }
 
+  // 规划模式且方案已提交：这时候等的是「执行」或者修改意见
+  if (isPlanning(key) && planReady(key)) {
+    const trimmed = String(text ?? '').trim()
+    const confirmed =
+      trimmed.length <= 8 &&
+      /^(执行|开始|可以|可行|行|好|没问题|就这样|跑吧|干吧|ok|okay|yes|go)/i.test(trimmed)
+
+    if (confirmed) {
+      const approved = exitPlan(key)
+      const { id } = startTask({
+        sessionKey: key,
+        tenantId: String(event.tenantId ?? ''),
+        actor: event.user_id ?? '',
+        goal: `任务：${approved.task}
+
+已批准的方案：
+${approved.content}`.slice(0, 1800),
+        notify: (body) => event.send([{ type: 'text', data: { text: body } }]),
+        send: (payload) => event.send(payload),
+      })
+      await sendReply(event, `方案通过，工单 ${id} 开始执行，做完我汇报。`)
+      return
+    }
+
+    if (/^(算了|取消|不用了|放弃|先不)/.test(trimmed)) {
+      cancelPlan(key)
+      await sendReply(event, '好，方案取消，什么都没动。')
+      return
+    }
+
+    // 其他话当成对方案的反馈，往下走让它继续规划
+  }
+
   // 工单跑着的时候，新消息直接投给那个工单，不另开一轮对话
   const running = submitInput(key, text)
   if (running) {
@@ -358,12 +405,26 @@ async function handleMessage(event, overrideText = '') {
   client?.sendTyping(event.user_id)
 
   try {
+    const planBefore = getPlan(key)?.submittedAt ?? 0
+
     const answer = await chat(key, input || '（只发了附件，没有文字）', {
       images,
       name: '',
       actor: event.user_id ?? '',
       send: (payload) => event.send(payload),
     })
+
+    // 这一轮刚提交了方案：把方案原文发出去，等他决定
+    const planAfter = getPlan(key)
+    if (planAfter && planAfter.submittedAt > planBefore) {
+      await sendReply(event, `方案：
+
+${planAfter.content}
+
+要执行就回「执行」，哪里不合适直接说。`)
+      return
+    }
+
     await sendReply(event, answer)
   } catch (error) {
     log.error(`模型调用失败 ${key}`, { error: error?.message ?? String(error) })
@@ -428,6 +489,7 @@ async function shutdown(signal) {
     flushActivity()
     flushTickets()
     flushTodos()
+    flushPlans()
   } catch (error) {
     log.error('落盘失败', { error: error?.message ?? String(error) })
   }
