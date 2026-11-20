@@ -21,5 +21,26 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # 和本地 pnpm check 是同一份检查：语法、模块加载、权限表自洽、单元测试
-      - run: pnpm check
+      # 拆成两步：失败时一眼看出是测试挂了还是别的检查挂了。
+      # 顺手把失败详情拆成 annotation，GitHub API 能直接读出来。
+      - name: 单元测试
+        run: |
+          set -o pipefail
+          if pnpm test 2>&1 | tee /tmp/test.log; then
+            exit 0
+          fi
+          tail -40 /tmp/test.log | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::error ::${line:0:300}"
+          done
+          exit 1
+
+      - name: 全量检查
+        run: |
+          set -o pipefail
+          if pnpm check 2>&1 | tee /tmp/check.log; then
+            exit 0
+          fi
+          tail -40 /tmp/check.log | while IFS= read -r line; do
+            [ -n "$line" ] && echo "::error ::${line:0:300}"
+          done
+          exit 1
