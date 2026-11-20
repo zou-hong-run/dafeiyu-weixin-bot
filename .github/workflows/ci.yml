@@ -32,8 +32,10 @@ jobs:
           echo "===== 失败详情 ====="
           tail -60 /tmp/test.log
           echo "===== 结束 ====="
-          SUMMARY=$(grep -E "not ok|Error|expected|actual|AssertionError" /tmp/test.log | head -6 | tr '\n' ' ' | cut -c1-400)
-          echo "::error title=单元测试失败::${SUMMARY:-见日志}"
+          # 带 file/line 的 workflow command 才会进 check-runs annotations API；
+          # 不带位置的只显示在网页日志里，API 读不到
+          SUMMARY=$(grep -E "not ok|Error|expected|actual|AssertionError" /tmp/test.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
+          echo "::error file=package.json,line=1,title=单元测试失败::${SUMMARY:-见日志}"
           exit 1
 
       - name: 全量检查
@@ -45,6 +47,6 @@ jobs:
           echo "===== 失败详情 ====="
           tail -60 /tmp/check.log
           echo "===== 结束 ====="
-          SUMMARY=$(grep -E "^✗|没通过|not ok|Error" /tmp/check.log | head -6 | tr '\n' ' ' | cut -c1-400)
-          echo "::error title=检查失败::${SUMMARY:-见日志}"
+          SUMMARY=$(grep -E "^✗|没通过|not ok|Error" /tmp/check.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
+          echo "::error file=package.json,line=1,title=检查失败::${SUMMARY:-见日志}"
           exit 1
