@@ -13,6 +13,7 @@ import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { flushTodos } from './chat/todos.js'
 import { cleanupSpill } from './chat/truncate.js'
+import { startAutoSync } from './ops/git-sync.js'
 import { llmLimiter } from './chat/llm.js'
 import { toolLimiterStats } from './chat/tool-runner.js'
 import { cancelPlan, enterPlan, exitPlan, flushPlans, getPlan, isPlanning, planReady } from './chat/plan.js'
@@ -624,6 +625,9 @@ async function main() {
 
   log.info(`人格 ${personaName}，模型 ${env.model}`)
   console.log('[启动] 就绪。私聊直接发消息，发 /help 看命令。')
+
+  // 代码同步：定时把改动推上去，再把远端拉下来合并
+  startAutoSync(env.autoSyncMinutes)
 
   // 入站附件每小时清一次
   const cleaner = setInterval(() => {

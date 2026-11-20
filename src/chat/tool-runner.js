@@ -8,6 +8,7 @@ import { TODO_TOOL_NAMES, makeTodoHandlers } from './todo-tools.js'
 import { PLAN_TOOL_NAMES, makePlanHandlers } from './plan-tools.js'
 import { createLimiter } from './limiter.js'
 import { SKILL_TOOL_NAMES, makeSkillHandlers } from './skill-tools.js'
+import { GIT_TOOL_NAMES, makeGitHandlers } from './git-tools.js'
 
 // 工具执行层：对话和后台工单共用同一套权限判断和分流逻辑。
 //
@@ -48,6 +49,11 @@ export async function runTool(name, args, { key, actor = '', send } = {}) {
   try {
     if (LOCAL_TOOL_NAMES.has(name)) {
       const handlers = makeLocalHandlers(key)
+      return String(await handlers[name](args ?? {}))
+    }
+
+    if (GIT_TOOL_NAMES.has(name)) {
+      const handlers = makeGitHandlers()
       return String(await handlers[name](args ?? {}))
     }
 

@@ -15,6 +15,7 @@ import { complete } from './llm.js'
 import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
 import { SKILL_TOOLS } from './skill-tools.js'
+import { GIT_TOOLS } from './git-tools.js'
 import { skillsPrompt } from '../skills/store.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
 import { mimeOf } from '../channel/incoming.js'
@@ -177,6 +178,7 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
     ...LOCAL_TOOLS,
     ...TODO_TOOLS,
     ...SKILL_TOOLS,
+    ...GIT_TOOLS,
     ...(send ? MEDIA_TOOLS : []),
     ...toDeepSeekTools(filterTools(getTools(), actor)),
   ]

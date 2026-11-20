@@ -24,6 +24,8 @@ export const DANGEROUS_TOOLS = new Set([
   'add_mcp',
   'remove_mcp',
   'install_package',
+  // 推代码会动远端仓库，不是随手能做的事
+  'git_sync',
 ])
 
 /**
@@ -124,6 +126,10 @@ export const TOOL_POLICY = {
   list_skills: READ_ONLY,
   read_skill: READ_ONLY,
   delete_skill: OPEN,
+
+  // 代码同步
+  git_sync: OPEN,
+  git_status: READ_ONLY,
 
   // 扩展能力（前三个是真高危，靠 DANGEROUS_TOOLS 拦）
   add_mcp: OPEN,

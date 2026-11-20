@@ -75,6 +75,10 @@ export const env = {
   toolDebug: process.env.TOOL_DEBUG === 'true',
   logLevel: process.env.LOG_LEVEL?.trim() || 'info',
 
+  // 代码同步：每隔多少分钟把本地改动提交推送，并拉取远端更新合并。0 = 关闭。
+  // 多实例部署同一个仓库时只能在一个实例上开，否则会互相冲突。
+  autoSyncMinutes: nonNegativeNumber('AUTO_SYNC_MINUTES', 0),
+
   // 收到的图片/文件留多久（小时），到点自动删
   mediaTtlHours: positiveNumber('MEDIA_TTL_HOURS', 24),
 
