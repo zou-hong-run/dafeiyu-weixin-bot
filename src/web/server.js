@@ -174,8 +174,8 @@ export function startWebServer() {
   })
 
   server.listen(env.webPort, env.webHost, () => {
-    const token = env.webAccessToken ? '?token=你的令牌' : ''
-    log.info(`[web] 管理页面 http://${env.webHost}:${env.webPort}/${token}`)
+    const hint = env.webAccessToken ? '（访问时在地址后加 ?token=<你在 WEB_ACCESS_TOKEN 配的那串>）' : ''
+    log.info(`[web] 管理页面 http://${env.webHost}:${env.webPort}/${hint}`)
     if (!localOnly) {
       log.warn(`[web] 正在监听 ${env.webHost}（非本地）。确认防火墙只放行了该放行的来源。`)
     }

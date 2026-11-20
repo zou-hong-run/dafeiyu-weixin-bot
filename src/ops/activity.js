@@ -27,7 +27,7 @@ function flush() {
   clearTimeout(saveTimer)
   saveTimer = null
   try {
-    fs.mkdirSync(dataDir, { recursive: true })
+    fs.mkdirSync(path.dirname(file), { recursive: true })
     fs.writeFileSync(`${file}.tmp`, JSON.stringify(state, null, 2))
     fs.renameSync(`${file}.tmp`, file)
   } catch (error) {
