@@ -4,49 +4,82 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# 同一个分支有新推送时取消上一次，别让排队把 runner 占满
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# 默认只读。CI 会执行仓库里的代码（冒烟启动），
+# 不给写权限等于断了「注入 → push → CI 改仓库」这条链。
+permissions:
+  contents: read
 
 jobs:
-  check:
+  test:
+    name: 引用检查 + 单元测试
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    env:
+      # 只是让 env.js 的必填校验过掉，不会发起任何真实请求
+      DEEP_SEEK_API_KEY: sk-ci-placeholder
+      # 授权变量留空：policy 测试要验证「未配白名单时默认拒绝」
+      ADMIN_USER_IDS: ''
+      ALLOW_DANGEROUS: 'false'
+      LOG_LEVEL: warn
+
     steps:
       - uses: actions/checkout@v7
 
-      # 版本由 package.json 的 packageManager 字段决定，不用在这写死
+      # 版本从 package.json 的 packageManager 字段读（pnpm@12.6.0）。
+      # 这里不能再写 with.version：两个都指定时 action 会直接报冲突。
       - uses: pnpm/action-setup@v6
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
-          cache: 'pnpm'
+          node-version: 22
+          cache: pnpm
 
-      - run: pnpm install --frozen-lockfile
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
 
-      # 拆成两步：一眼看出是测试挂了还是别的检查挂了。
-      # 失败摘要塞进**一条** annotation（GitHub 每步最多 10 条，逐行发会被丢掉）。
+      # 失败时把摘要塞进一条带 file/line 的 annotation——只有这样才进 API，
+      # 不带位置的 workflow command 只显示在网页日志里，脚本读不到。
       - name: 单元测试
         run: |
           set -o pipefail
           if pnpm test 2>&1 | tee /tmp/test.log; then
             exit 0
           fi
-          echo "===== 失败详情 ====="
           tail -60 /tmp/test.log
-          echo "===== 结束 ====="
-          # 带 file/line 的 workflow command 才会进 check-runs annotations API；
-          # 不带位置的只显示在网页日志里，API 读不到
-          SUMMARY=$(grep -E "not ok|Error|expected|actual|AssertionError" /tmp/test.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
+          SUMMARY=$(grep -E "not ok|AssertionError|expected|actual" /tmp/test.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
           echo "::error file=package.json,line=1,title=单元测试失败::${SUMMARY:-见日志}"
           exit 1
 
-      - name: 全量检查
+      - name: 静态引用检查
         run: |
           set -o pipefail
           if pnpm check 2>&1 | tee /tmp/check.log; then
             exit 0
           fi
-          echo "===== 失败详情 ====="
           tail -60 /tmp/check.log
-          echo "===== 结束 ====="
-          SUMMARY=$(grep -E "^✗|没通过|not ok|Error" /tmp/check.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
+          SUMMARY=$(grep -E "^✗|没通过|Error" /tmp/check.log | head -8 | tr '\n' ' ' | sed 's/%/%25/g' | cut -c1-900)
           echo "::error file=package.json,line=1,title=检查失败::${SUMMARY:-见日志}"
           exit 1
+
+      # 高危漏洞直接让 CI 红。镜像源没有 audit 端点，所以显式指官方源。
+      - name: 依赖审计
+        run: pnpm audit --prod --audit-level=high --registry=https://registry.npmjs.org
+
+      # 冒烟启动会真的执行仓库里的代码。只在 push 到 main 时跑：
+      # PR 可能来自 fork，执行它的代码等于给外部提交一个执行入口。
+      # 微信版不需要 QQ 那套 APP_ID，只验装配：工具注册、目录创建、Web 监听。
+      - name: 冒烟启动（不扫码，只验证装配）
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          timeout 8 node src/index.js 2>&1 | tee boot.log || true
+          grep -q "就绪" boot.log || { echo "启动日志里没有「就绪」记录"; cat boot.log; exit 1; }
+          grep -q "工具已就绪" boot.log || { echo "工具服务没起来"; cat boot.log; exit 1; }
+        continue-on-error: true
