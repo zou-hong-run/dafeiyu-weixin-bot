@@ -52,6 +52,10 @@ export const env = {
   // 8 轮对「搜几条新闻、各抓一次正文、整理成文件、发出去」这种任务是不够的，
   // 会撞上限然后放弃——默认给到 16，复杂任务还有工单兜底。
   maxToolRounds: Math.floor(positiveNumber('MAX_TOOL_ROUNDS', 16)),
+
+  // 并发闸门：多用户同时聊天时，超出的排队而不是一起打出去
+  llmConcurrency: Math.floor(positiveNumber('LLM_CONCURRENCY', 4)),
+  toolConcurrency: Math.floor(positiveNumber('TOOL_CONCURRENCY', 4)),
   toolTimeoutMs: positiveNumber('TOOL_TIMEOUT_SECONDS', 60) * 1000,
 
   // 后台工单

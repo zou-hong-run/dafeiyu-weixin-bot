@@ -1,5 +1,5 @@
-import OpenAI from 'openai'
 import { env } from '../config/env.js'
+import { complete } from './llm.js'
 
 // 上下文压缩。
 //
@@ -30,7 +30,6 @@ const COMPACTION_PROMPT = `你即将失去上下文。给接手这件事的模�
 不用抄任务清单，它会自动带上。
 只输出摘要正文，不要调用工具，不要说「好的，这是摘要」。`
 
-const client = new OpenAI({ apiKey: env.apiKey, baseURL: env.baseURL })
 
 /** 把一串消息渲染成压缩用的对话记录 */
 function transcriptOf(messages) {
@@ -72,7 +71,7 @@ export async function compactConversation({ messages, previousSummary = '', extr
   parts.push('--- 需要压缩的对话 ---', body)
 
   try {
-    const response = await client.chat.completions.create({
+    const response = await complete({
       model: env.model,
       messages: [{ role: 'user', content: parts.join('\n\n') }],
       // 摘要长度跟任务规模走，给足空间；具体写多少由提示词里的「相称」约束

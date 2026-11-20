@@ -6,6 +6,7 @@ import { LOCAL_TOOL_NAMES, makeLocalHandlers } from './local-tools.js'
 import { MEDIA_TOOL_NAMES, makeMediaHandlers } from './media-tools.js'
 import { TODO_TOOL_NAMES, makeTodoHandlers } from './todo-tools.js'
 import { PLAN_TOOL_NAMES, makePlanHandlers } from './plan-tools.js'
+import { createLimiter } from './limiter.js'
 
 // 工具执行层：对话和后台工单共用同一套权限判断和分流逻辑。
 //
@@ -24,6 +25,14 @@ import { PLAN_TOOL_NAMES, makePlanHandlers } from './plan-tools.js'
  * @param {{ key: string, actor?: string, send?: (payload: object) => Promise<void> }} ctx
  *   send 不传就没有媒体发送工具（没有会话上下文时发不出去）
  */
+// 工具并发闸门：多个用户同时让我跑 shell 的话，会起一堆子进程把内存吃光
+const toolLimiter = createLimiter('tool', env.toolConcurrency)
+
+/** 给 /diag 看的工具并发状态 */
+export function toolLimiterStats() {
+  return toolLimiter.stats()
+}
+
 export async function runTool(name, args, { key, actor = '', send } = {}) {
   if (!isToolAllowed(name, actor)) {
     const reason = denyReason(name, actor)
@@ -60,7 +69,9 @@ export async function runTool(name, args, { key, actor = '', send } = {}) {
       return result
     }
 
-    return await callTool(name, args ?? {}, env.toolTimeoutMs, { sessionKey: key, actor })
+    return await toolLimiter.run(() =>
+      callTool(name, args ?? {}, env.toolTimeoutMs, { sessionKey: key, actor }),
+    )
   } catch (error) {
     const message = String(error?.message ?? error)
     auditTool({ name, actor, sessionKey: key, args, outcome: 'failed', note: message.slice(0, 160) })

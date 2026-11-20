@@ -1,4 +1,3 @@
-import OpenAI from 'openai'
 import { env } from '../config/env.js'
 import { filterTools } from '../config/policy.js'
 import { getTools, toDeepSeekTools } from '../mcp/client.js'
@@ -7,6 +6,7 @@ import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
 import { compactConversation } from './compaction.js'
 import { truncateToolResult } from './truncate.js'
+import { complete } from './llm.js'
 import { TODO_TOOLS } from './todo-tools.js'
 
 // 后台工单的执行引擎。
@@ -17,8 +17,6 @@ import { TODO_TOOLS } from './todo-tools.js'
 //   · 有 pullInput：工单跑着的时候，用户还能插话，插的话会进下一轮
 //   · 有 notify_user：需要中途主动说话时用，不用等整件事做完
 //   · 不碰主对话的记忆，上下文按工单隔离（sessionKey = worker:<id>）
-
-const client = new OpenAI({ apiKey: env.apiKey, baseURL: env.baseURL })
 
 
 const TASK_SYSTEM = `你在后台执行一件被交代的任务。对方看不到你的过程，只会看到进度提示和最终汇报。
@@ -45,7 +43,7 @@ NEXT: 如果没完成，下一步该做什么（一句话）；完成了就写�
  */
 export async function verifyCompletion(goal, transcript) {
   try {
-    const response = await client.chat.completions.create({
+    const response = await complete({
       model: env.model,
       messages: [
         { role: 'system', content: VERIFY_SYSTEM },
@@ -182,7 +180,7 @@ export async function runTaskAgent({
       messages.push({ role: 'user', content: `【对方补充】\n${inputs.join('\n')}` })
     }
 
-    const response = await client.chat.completions.create({
+    const response = await complete({
       model: env.model,
       messages,
       tools,

@@ -12,6 +12,8 @@ import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
 import { flushTodos } from './chat/todos.js'
 import { cleanupSpill } from './chat/truncate.js'
+import { llmLimiter } from './chat/llm.js'
+import { toolLimiterStats } from './chat/tool-runner.js'
 import { cancelPlan, enterPlan, exitPlan, flushPlans, getPlan, isPlanning, planReady } from './chat/plan.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
 import { acquireInstanceLock } from './ops/instance.js'
@@ -252,6 +254,14 @@ const COMMANDS = {
       `· 工单：在跑 ${workers.length} 个`,
       `· 定时：${sched.total} 条（启用 ${sched.enabled}），上次检查 ${sched.tickAgeSeconds ?? '?'} 秒前`,
       `· 你最后一次说话：${idle === Number.POSITIVE_INFINITY ? '无记录' : `${Math.round(idle)} 分钟前`}`,
+      (() => {
+        const llm = llmLimiter.stats()
+        const tool = toolLimiterStats()
+        return (
+          `· 并发：模型 ${llm.active}/${llm.limit}（排队 ${llm.queued}，峰值 ${llm.peak}，平均等 ${llm.avgWaitMs}ms）｜` +
+          `工具 ${tool.active}/${tool.limit}（排队 ${tool.queued}）`
+        )
+      })(),
       `· Node ${process.version}｜内存 ${Math.round(process.memoryUsage().rss / 1048576)}MB`,
     ].join('\n')
   },

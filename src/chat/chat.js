@@ -1,6 +1,5 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import OpenAI from 'openai'
 import { env } from '../config/env.js'
 import { filterTools } from '../config/policy.js'
 import { getTools, toDeepSeekTools } from '../mcp/client.js'
@@ -12,14 +11,13 @@ import { TODO_TOOLS } from './todo-tools.js'
 import { getTodos, renderTodos, staleReminder } from './todos.js'
 import { compactConversation } from './compaction.js'
 import { truncateToolResult } from './truncate.js'
+import { complete } from './llm.js'
 import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
 import { mimeOf } from '../channel/incoming.js'
 
 // 对话：装配提示词 → 工具循环 → 落记忆。
-
-const client = new OpenAI({ apiKey: env.apiKey, baseURL: env.baseURL })
 
 // DeepSeek 上下文 128K，留 40% 给输出和提示词，剩下的才是历史预算
 const HISTORY_BUDGET_TOKENS = 60_000
@@ -119,7 +117,7 @@ async function compress(key, overflow) {
  */
 async function answerWithoutTools(messages) {
   try {
-    const response = await client.chat.completions.create({
+    const response = await complete({
       model: env.model,
       messages: [
         ...messages,
@@ -191,7 +189,7 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
       }
     }
 
-    const response = await client.chat.completions.create({
+    const response = await complete({
       model: env.model,
       messages,
       tools,
