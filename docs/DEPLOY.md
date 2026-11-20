@@ -262,6 +262,58 @@ sudo -u wechatbot pnpm install --prod
 sudo systemctl restart wechatbot
 ```
 
+`git pull` **不会动你的数据**：`data/`、`skills/`、`.env`、`downloads/`、`logs/` 都在 `.gitignore` 里，git 根本不看它们。
+
+**但有两条命令会要命**：
+
+```bash
+# ❌ 绝对不要跑：-x 会连 .gitignore 里的文件一起删，你所有的账号、记忆、技能当场没
+git clean -fdx
+
+# ❌ 也别跑：会把代码和数据一起抹回某个提交
+git reset --hard <很老的提交>
+```
+
+`git pull`、`git checkout .`、`git reset --hard HEAD` 都是安全的——它们只碰被跟踪的文件。
+
+### 把数据挪到项目外（推荐多实例部署时用）
+
+数据放在项目里，理论上总有被误操作带走的可能。挪出去就彻底分开了：
+
+```bash
+sudo mkdir -p /var/lib/wechatbot/data /var/lib/wechatbot/skills
+sudo chown -R wechatbot:wechatbot /var/lib/wechatbot
+sudo chmod 700 /var/lib/wechatbot
+
+# 把现有数据搬过去
+sudo -u wechatbot cp -a /opt/wechatbot/data/. /var/lib/wechatbot/data/
+sudo -u wechatbot cp -a /opt/wechatbot/skills/. /var/lib/wechatbot/skills/
+```
+
+`/etc/wechatbot/env` 里加：
+
+```env
+DATA_DIR=/var/lib/wechatbot/data
+SKILLS_DIR=/var/lib/wechatbot/skills
+```
+
+重启后数据就在项目外了。这时候 `/opt/wechatbot` 整个目录删了重装都不影响。
+
+**只建议外置 `DATA_DIR` 和 `SKILLS_DIR`**。`downloads`/`logs`/`tmp` 外置后，模型读不到下载的文件——因为路径校验是按项目内相对路径做的。
+
+### 哪些是代码，哪些是你的数据
+
+| 代码（`git pull` 会更新） | 数据（git 不碰，要自己备份） |
+|---|---|
+| `src/`、`docs/`、`deploy/` | `data/`（账号凭证、记忆、工单、定时任务、MCP 注册表、方案） |
+| `README.md`、`AGENTS.md`、`SELF.md` | `skills/`（你让它记下的技能） |
+| `package.json`、`pnpm-lock.yaml` | `.env` / `/etc/wechatbot/env`（密钥） |
+| `ecosystem.config.cjs` | `downloads/`、`logs/` |
+
+改代码目录的 `SELF.md` 会覆盖你本地改过的版本——如果想让机器人有专属认知，改完记得提交到你自己的分支。
+
+**备份就备这三样**：`data/`、`skills/`、密钥文件。丢了 `data/ilink/` 要重新扫码，丢了 `skills/` 要重写。
+
 **备份**
 
 至少要备这三样，丢了就找不回来：

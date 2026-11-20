@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { execFile, spawn } from 'node:child_process'
 import { caps, isWindows, memoryInfo } from '../ops/platform.js'
@@ -9,8 +10,8 @@ import { shellSafeEnv } from './shell-env.js'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const tmpDir = path.join(projectRoot, 'tmp')
-const logDir = path.join(projectRoot, 'logs')
+const tmpDir = paths.tmp
+const logDir = paths.logs
 const MAX_OUTPUT = 3000
 const MAX_COMMAND = 4000
 const MAX_SCRIPT = 40_000
@@ -460,7 +461,7 @@ async function restartSelf({ delay_seconds: delaySeconds = 6, reason = '' }) {
 
   // 留个标记，重启后新进程会读它，用来告诉用户「为什么重启」
   try {
-    const pending = path.join(projectRoot, 'data', 'restart-pending.json')
+    const pending = path.join(paths.data, 'restart-pending.json')
     fs.mkdirSync(path.dirname(pending), { recursive: true })
     fs.writeFileSync(pending, JSON.stringify({ at: Date.now(), reason: note, app: PM2_APP }))
   } catch {

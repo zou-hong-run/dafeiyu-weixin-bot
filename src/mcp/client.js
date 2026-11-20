@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
@@ -10,7 +11,7 @@ import { assertMcpCommand } from './mcp-guard.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
 const builtinServerPath = path.join(projectRoot, 'src', 'mcp-server', 'index.js')
-const registryFile = path.join(projectRoot, 'data', 'mcp-registry.json')
+const registryFile = dataPath.registry
 
 const SAFE_ENV_KEYS = [
   'PATH', 'Path', 'SYSTEMROOT', 'SystemRoot', 'TEMP', 'TMP',

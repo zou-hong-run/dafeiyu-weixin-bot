@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -10,7 +11,7 @@ import { env } from '../config/env.js'
 // 为什么值得有：复杂任务直接开干，做错方向要重来；先给方案，成本低得多。
 // 而且规划阶段不给写权限，模型没法「边做边改主意」。
 
-const dataDir = path.join(env.projectRoot, 'data')
+const dataDir = paths.data
 const planFile = path.join(dataDir, 'plans.json')
 
 // 规划阶段允许用的工具：全部只读，加上提交计划的出口。

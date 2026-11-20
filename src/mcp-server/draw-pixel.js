@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -6,7 +7,7 @@ import { fileURLToPath } from 'node:url'
 // PNG 编码用 pngjs（纯 JS，无原生依赖），比手写 CRC32 + IHDR 靠谱。
 // pngjs 按需加载：没装就只让 draw_pixel 报错，别拖垮整个内置工具服务
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const outDir = path.join(projectRoot, 'downloads')
+const outDir = paths.downloads
 
 const MAX_COLS = 200
 const MAX_ROWS = 200

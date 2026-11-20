@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -11,7 +12,7 @@ import { env } from '../config/env.js'
 // 前半段查资料，后半段忘了用户还要求"整理成表格"，最后交一半。
 // 清单挂在提示词里，模型每轮都看得到自己在第几步。
 
-const dataDir = path.join(env.projectRoot, 'data')
+const dataDir = paths.data
 const todoFile = path.join(dataDir, 'todos.json')
 
 export const TODO_STATUS = ['pending', 'in_progress', 'done']

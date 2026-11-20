@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -12,7 +13,7 @@ import { fileURLToPath } from 'node:url'
 // 所以这里的定位是「30 秒试听」：找得到、发得出去、不占带宽。
 // 要整首歌只能让用户给直链，走 download 下（这台机器带宽十几 KB/s，很慢）。
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const cacheFile = path.join(projectRoot, 'data', 'music-cache.json')
+const cacheFile = dataPath.musicCache
 
 const SEARCH_API = 'https://itunes.apple.com/search'
 const TIMEOUT_MS = 15_000

@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -7,7 +8,7 @@ import { env } from '../config/env.js'
 // 微信协议里所有媒体都加密在 CDN 上（AES-128-ECB），解密由 SDK 的 downloadRaw 处理。
 // 这里只管三件事：下载、命名、给模型一段能看懂的说明。
 
-const incomingRoot = path.join(env.projectRoot, 'downloads', 'incoming')
+const incomingRoot = path.join(paths.downloads, 'incoming')
 
 const MAX_ITEMS = 4
 const MAX_BYTES = 20 * 1024 * 1024

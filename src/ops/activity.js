@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -10,8 +11,7 @@ import { env } from '../config/env.js'
 //
 // 现在只记录和提供判断接口；等接定时任务时直接用 canPushTo()。
 
-const dataDir = path.join(env.projectRoot, 'data')
-const file = path.join(dataDir, 'activity.json')
+const file = dataPath.activity
 
 let state = {}
 try {

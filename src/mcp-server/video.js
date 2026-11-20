@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -20,7 +21,7 @@ const PARSE_TIMEOUT_MS = 60_000
 const DEFAULT_MAX_MB = 15
 // 有的站对服务器 IP 有风控（B 站常见 412），带上浏览器导出的 cookies 就能过。
 // 文件放 data/cookies.txt（Netscape 格式），有就用，没有就直连。
-const cookieFile = path.join(projectRoot, 'data', 'cookies.txt')
+const cookieFile = dataPath.cookies
 
 function commonArgs(url) {
   // Windows 上 yt-dlp 是 Python 程序，默认按系统代码页（936）输出，
@@ -192,7 +193,7 @@ async function fetchVideo({ url = '', seconds = 10, startAt = 0, maxHeight = 360
   const height = Math.min(Math.max(Math.floor(Number(maxHeight) || 360), 144), 720)
 
   const safeName = String(fileName ?? '').trim().replace(/[^\w.\-]/g, '') || `clip-${Date.now()}.mp4`
-  const outFile = path.join(projectRoot, 'downloads', safeName.endsWith('.mp4') ? safeName : `${safeName}.mp4`)
+  const outFile = path.join(paths.downloads, safeName.endsWith('.mp4') ? safeName : `${safeName}.mp4`)
 
   const args = [
     ...commonArgs(url),
@@ -398,7 +399,7 @@ async function readVideoSubtitle({ url = '', lang = 'zh-Hans,zh-CN,zh,en', start
     throw new Error('服务器上没装 yt-dlp。让管理员跑一次 pipx install yt-dlp（或 pip3 install yt-dlp）')
   }
 
-  const workDir = path.join(projectRoot, 'tmp', 'subs', `s-${Date.now().toString(36)}`)
+  const workDir = path.join(paths.tmp, 'subs', `s-${Date.now().toString(36)}`)
   fs.mkdirSync(workDir, { recursive: true })
 
   const args = [

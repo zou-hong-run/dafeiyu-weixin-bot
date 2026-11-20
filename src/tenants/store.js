@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -12,7 +13,7 @@ import { env } from '../config/env.js'
 // 为什么要按账号分目录：SDK 的凭证是按 storageDir 存的，
 // 两个账号共用同一个目录会互相覆盖 token——A 的回复会发到 B 的会话里。
 
-const tenantsRoot = path.join(env.projectRoot, 'data', 'tenants')
+const tenantsRoot = dataPath.tenants
 
 function safeId(raw) {
   return String(raw ?? '')

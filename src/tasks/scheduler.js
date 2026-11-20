@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths, dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { CronExpressionParser } from 'cron-parser'
@@ -6,8 +7,8 @@ import { checkDuplicate, recordSent } from './outbox.js'
 import { canHeal, errorSignature, markHeal } from './heal.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-let dataDir = path.join(projectRoot, 'data')
-let scheduleFile = path.join(dataDir, 'schedules.json')
+let dataDir = paths.data
+let scheduleFile = dataPath.schedules
 
 /**
  * 测试用：把任务文件指到临时目录。

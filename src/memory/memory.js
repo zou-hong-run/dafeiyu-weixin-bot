@@ -1,11 +1,12 @@
 import fs from 'node:fs'
+import { paths, dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-let dataDir = path.join(projectRoot, 'data')
-let memoryFile = path.join(dataDir, 'memory.json')
+let dataDir = paths.data
+let memoryFile = dataPath.memory
 
 /**
  * 测试用：把记忆文件指到临时目录。

@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+import { dataPath, paths } from '../config/paths.js'
 import { isWindows } from './platform.js'
 
 // 收紧敏感文件的权限。
@@ -8,32 +9,29 @@ import { isWindows } from './platform.js'
 // Linux 上必须做——默认 umask 022 建出来的文件是 644，同机任何用户都能读，
 // 而 data/ilink/credentials.json 里是能收发这个微信号消息的 bot_token。
 
-const DIRS = [
-  ['data', 0o700],
-  ['data/ilink', 0o700],
-  ['logs', 0o700],
-  ['tmp', 0o700],
-]
-
-const FILES = [
-  ['.env', 0o600],
-  ['data/ilink/credentials.json', 0o600],
-  ['data/ilink/context_tokens.json', 0o600],
-  ['data/memory.json', 0o600],
-  ['data/tickets.json', 0o600],
-  ['data/schedules.json', 0o600],
-]
 
 /**
  * @returns {string[]} 实际改动过的项，启动日志会打出来
  */
-export function tightenPermissions(projectRoot) {
+export function tightenPermissions() {
   if (isWindows) return []
 
   const changed = []
 
-  for (const [rel, mode] of [...DIRS, ...FILES]) {
-    const target = path.join(projectRoot, rel)
+  const all = [
+    [path.join(paths.projectRoot, '.env'), 0o600, '.env'],
+    [paths.data, 0o700, 'data'],
+    [dataPath.ilink, 0o700, 'data/ilink'],
+    [paths.logs, 0o700, 'logs'],
+    [paths.tmp, 0o700, 'tmp'],
+    [dataPath.memory, 0o600, 'memory.json'],
+    [dataPath.tickets, 0o600, 'tickets.json'],
+    [dataPath.schedules, 0o600, 'schedules.json'],
+    [dataPath.ilink + path.sep + 'credentials.json', 0o600, 'credentials.json'],
+    [dataPath.ilink + path.sep + 'context_tokens.json', 0o600, 'context_tokens.json'],
+  ]
+
+  for (const [target, mode, rel] of all) {
     try {
       if (!fs.existsSync(target)) continue
       const before = fs.statSync(target).mode & 0o777

@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { env } from './config/env.js'
+import { dataPath, ensureDirs, paths } from './config/paths.js'
 import { describeAdminPolicy, describePolicy, isDangerousTool } from './config/policy.js'
 import { chat } from './chat/chat.js'
 import { clearAllMerged, mergeMessage } from './chat/merge.js'
@@ -43,9 +44,8 @@ import { startWebServer, stopWebServer } from './web/server.js'
 process.env.PM2_MANAGED = process.env.pm_id !== undefined ? '1' : '0'
 process.env.PM2_APP_NAME = process.env.name?.trim() || process.env.PM2_APP_NAME?.trim() || 'dafeiyu'
 
-const dataDir = path.join(env.projectRoot, 'data')
-fs.mkdirSync(dataDir, { recursive: true })
-fs.mkdirSync(path.join(env.projectRoot, 'downloads'), { recursive: true })
+const dataDir = paths.data
+ensureDirs()
 
 const startedAt = Date.now()
 let shuttingDown = false
@@ -534,9 +534,9 @@ process.on('uncaughtException', (error) => {
 async function main() {
   // 单实例锁：同一个凭证目录只能一个进程轮询。
   // 多账号都在本进程内，所以一个进程级锁就够了。
-  releaseLock = acquireInstanceLock(path.join(dataDir, 'instance.lock'))
+  releaseLock = acquireInstanceLock(dataPath.instanceLock)
 
-  const tightened = tightenPermissions(env.projectRoot)
+  const tightened = tightenPermissions()
   if (tightened.length > 0) log.info(`已收紧文件权限：${tightened.join('，')}`)
 
   log.info(`平台：${describePlatform()}`)

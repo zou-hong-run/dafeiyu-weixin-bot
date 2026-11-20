@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -74,7 +75,7 @@ function captionOf(caption) {
 /** 音频来源 → 本地文件路径。URL 会先落到 downloads/ */
 async function localAudioOf(source) {
   const text = String(source ?? '').trim()
-  const downloads = path.join(env.projectRoot, 'downloads')
+  const downloads = paths.downloads
 
   if (/^https?:\/\//i.test(text)) {
     fs.mkdirSync(downloads, { recursive: true })

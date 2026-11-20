@@ -1,10 +1,11 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { assertPublicUrl, fetchPublic } from './net-guard.js'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const downloadDir = path.join(projectRoot, 'downloads')
+const downloadDir = paths.downloads
 
 const MAX_BYTES = 50 * 1024 * 1024
 const KEEP_FILES = 50

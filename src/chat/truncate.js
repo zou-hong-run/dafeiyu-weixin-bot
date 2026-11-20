@@ -1,6 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import { env } from '../config/env.js'
+import { paths } from '../config/paths.js'
 
 // 工具结果截断。
 //
@@ -19,7 +19,7 @@ const LIMIT = 4000 // 给模型的文本上限
 const HEAD = 2600 // 开头预览
 const TAIL = 700 // 结尾预览
 const MAX_LINE = 2000 // 单行上限
-const SPILL_DIR = 'tmp/tool-output'
+const SPILL_ABS = path.join(paths.tmp, 'tool-output')
 const SPILL_TTL_HOURS = 24
 
 /** 单行超长就截断。一行 10 万字符的 JSON 塞进去，上下文直接爆 */
@@ -52,8 +52,8 @@ export function truncateToolResult(text, { toolName = '', callId = '' } = {}) {
   if (shaped.length <= LIMIT) return shaped
 
   // 完整内容（含未截断的行）落盘，模型需要时自己读
-  const rel = path.join(SPILL_DIR, `${safeName(toolName, callId)}.txt`).split(path.sep).join('/')
-  const abs = path.join(env.projectRoot, rel)
+  const abs = path.join(SPILL_ABS, `${safeName(toolName, callId)}.txt`)
+  const rel = path.relative(paths.projectRoot, abs).split(path.sep).join('/')
 
   let saved = false
   try {
@@ -90,7 +90,7 @@ export function truncateToolResult(text, { toolName = '', callId = '' } = {}) {
 export function cleanupSpill(ttlHours = SPILL_TTL_HOURS) {
   if (!(ttlHours > 0)) return 0
 
-  const dir = path.join(env.projectRoot, SPILL_DIR)
+  const dir = SPILL_ABS
   const ttlMs = ttlHours * 3600 * 1000
   const now = Date.now()
   let removed = 0

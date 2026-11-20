@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { env } from '../config/env.js'
 
@@ -9,7 +10,7 @@ import { env } from '../config/env.js'
 // 把它接进来（见 sdkLogger），比事后劫持全局 console 干净。
 
 const LEVELS = { debug: 10, info: 20, warn: 30, error: 40, silent: 99 }
-const logDir = path.join(env.projectRoot, 'logs')
+const logDir = paths.logs
 const KEEP_DAYS = 7
 
 let currentDay = ''

@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths, dataPath } from '../config/paths.js'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
@@ -8,8 +9,8 @@ import { shellSafeEnv } from './shell-env.js'
 
 const execFileAsync = promisify(execFile)
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const dataDir = path.join(projectRoot, 'data')
-const registryFile = path.join(dataDir, 'mcp-registry.json')
+const dataDir = paths.data
+const registryFile = dataPath.registry
 
 // 扩展能力的工具：注册外部 MCP 服务、装 npm 包。
 //

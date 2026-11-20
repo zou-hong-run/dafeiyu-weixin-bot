@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { paths } from '../config/paths.js'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -206,7 +207,7 @@ export function sandboxSelfTest() {
   // 光跑 true 只能证明参数合法，证明不了能不能写目录。
   // 探针要落在真正可写的 tmp/ 里：项目根现在是只读的，写在那儿必然失败，
   // 自检会把好好的沙箱判成不可用。
-  const probeDir = path.join(projectRoot, 'tmp')
+  const probeDir = paths.tmp
   try {
     fs.mkdirSync(probeDir, { recursive: true })
   } catch {

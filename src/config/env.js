@@ -1,15 +1,5 @@
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-import { config } from 'dotenv'
-import { defaultEnvFile } from '../ops/platform.js'
-
-const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-
-// 密钥优先从项目外读（Linux 上是 /etc/wechatbot/env，或用 APP_ENV_FILE 指定），
-// 项目根的 .env 只做兜底。这样即使项目目录被 web 服务或静态托管暴露，
-// 也拿不到 API key 和登录凭证。
-const externalEnv = process.env.APP_ENV_FILE?.trim() || defaultEnvFile()
-config({ path: [externalEnv, path.join(projectRoot, '.env')], quiet: true })
+import { projectRoot } from './dotenv.js'
+import { dataPath } from './paths.js'
 
 function positiveNumber(name, fallback) {
   const value = Number(process.env[name])
@@ -89,7 +79,7 @@ export const env = {
   mediaTtlHours: positiveNumber('MEDIA_TTL_HOURS', 24),
 
   // 扫码登录在终端里画二维码用
-  loginDir: path.join(projectRoot, 'data', 'ilink'),
+  loginDir: dataPath.ilink,
 
   // 多账号管理页面。默认只听本机——要外部访问必须自己配 token。
   webEnabled: process.env.WEB_ENABLED !== 'false',

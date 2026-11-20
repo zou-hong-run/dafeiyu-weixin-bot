@@ -1,12 +1,13 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { paths } from '../config/paths.js'
 
 // 自愈节流：定时任务挂了自己去查去改，但不能无限次改。
 // 规则：同一个任务 + 同一种报错 24 小时内只自愈一次；
 //       同一个任务 1 小时内最多自愈 2 次；同一任务连续自愈失败 3 次就停手，等人工。
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
-const dataDir = path.join(projectRoot, 'data')
+const dataDir = paths.data
 const healFile = path.join(dataDir, 'heals.json')
 
 const SIG_WINDOW_MS = 24 * 60 * 60 * 1000
