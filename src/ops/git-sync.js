@@ -249,7 +249,12 @@ export function describeSync(report) {
  */
 export function startAutoSync(minutes) {
   const interval = Number(minutes)
-  if (!(interval > 0)) return null
+  if (!(interval > 0)) {
+    // 关闭状态也要留一行：启动日志里什么都不打的话，用户会以为它一直在同步，
+    // 等到发现远端半年没更新才知道是关的
+    log.info('[同步] 未启用（AUTO_SYNC_MINUTES=0）：不会自动提交推送，也拉不到远端更新')
+    return null
+  }
 
   let running = false
 

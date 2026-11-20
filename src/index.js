@@ -34,6 +34,12 @@ import {
 import { busyTasks, killTask, startTask, submitInput, taskStatus } from './tasks/task-runner.js'
 import { flushTickets, recoverTickets } from './tasks/ticket.js'
 import { startWatchdog, stopWatchdog } from './tasks/watchdog.js'
+import { LOCAL_TOOLS } from './chat/local-tools.js'
+import { TODO_TOOLS } from './chat/todo-tools.js'
+import { SKILL_TOOLS } from './chat/skill-tools.js'
+import { GIT_TOOLS } from './chat/git-tools.js'
+import { SCHEDULE_TOOLS } from './chat/schedule-tools.js'
+import { MEDIA_TOOLS } from './chat/media-tools.js'
 import { getClient, startAll, stopAll, tenantsStatus } from './tenants/manager.js'
 import { listTenants, migrateLegacyCredential } from './tenants/store.js'
 import { userIdOf, userKey } from './tenants/keys.js'
@@ -166,6 +172,18 @@ function scheduleListText(key) {
     .join('\n')
 }
 
+/**
+ * 本地工具（主进程内，不走 MCP 子进程）的总清单。
+ *
+ * 从各模块的数组现算，不写死数字——之前 `/diag` 里硬编码「17 个」，
+ * 加了三个定时任务工具就对不上了。规划工具只在规划模式出现，不算在内。
+ */
+function LOCAL_TOOL_LINES() {
+  const groups = [LOCAL_TOOLS, TODO_TOOLS, SKILL_TOOLS, GIT_TOOLS, SCHEDULE_TOOLS, MEDIA_TOOLS]
+  const names = groups.flat().map((tool) => tool.function?.name).filter(Boolean)
+  return { count: names.length, names: names.join(' ') }
+}
+
 const COMMANDS = {
   '/help': () => [
     '可用的命令：',
@@ -252,8 +270,9 @@ const COMMANDS = {
 
   '/tools': () => {
     const tools = getTools()
-    if (tools.length === 0) return '工具服务没起来，现在只有记忆类工具可用。'
-    return `共 ${tools.length} 个工具：\n${describePolicy(tools.map((tool) => tool.name))}\n\n另有记忆工具 5 个、媒体发送工具 4 个。`
+    const local = LOCAL_TOOL_LINES()
+    if (tools.length === 0) return `工具服务没起来，现在只有本地工具可用（${local.count} 个）：${local.names}`
+    return `共 ${tools.length} 个工具：\n${describePolicy(tools.map((tool) => tool.name))}\n\n另有本地工具 ${local.count} 个：${local.names}`
   },
 
   '/config': () => [
@@ -263,6 +282,8 @@ const COMMANDS = {
     `工单 ${env.taskMaxRounds} 轮 / 验收续跑 ${env.taskMaxContinuations} 次 / 同时 ${env.taskConcurrency} 个`,
     `连发合并 ${env.mergeWindowMs > 0 ? `${env.mergeWindowMs}ms` : '关闭'}`,
     `主动推送门控 ${env.pushMaxIdleMinutes} 分钟`,
+    // 自动同步默认关闭，这里必须显式说出来，否则用户以为一直在同步
+    `代码自动同步 ${env.autoSyncMinutes > 0 ? `每 ${env.autoSyncMinutes} 分钟` : '关闭（AUTO_SYNC_MINUTES=0）'}`,
     `账号 ${tenantsStatus().length} 个`,
     `权限：${describeAdminPolicy()}`,
     `日志级别 ${env.logLevel}${env.toolDebug ? '（工具调用详细日志已开）' : ''}`,
@@ -283,7 +304,7 @@ const COMMANDS = {
       `· 当前账号：${tenantId}${client?.selfId() ? `（${client.selfId()}）` : '（未运行）'}`,
       `· 账号总数：${tenants.length} 个，运行中 ${tenants.filter((t) => t.running).length} 个`,
       `· 运行：${formatDuration(Date.now() - startedAt)}`,
-      `· 工具：${tools.length} 个 MCP 工具 + 17 个本地工具`,
+      `· 工具：${tools.length} 个 MCP 工具 + ${LOCAL_TOOL_LINES().count} 个本地工具`,
       `· 记忆：短期 ${s.shortTerm} 轮、摘要 ${s.midTermChars} 字、长期 ${s.longTerm} 条`,
       `· 工单：在跑 ${workers.length} 个`,
       `· 定时：${sched.total} 条（启用 ${sched.enabled}），上次检查 ${sched.tickAgeSeconds ?? '?'} 秒前`,
