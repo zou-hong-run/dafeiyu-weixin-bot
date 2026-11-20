@@ -4,12 +4,13 @@ import OpenAI from 'openai'
 import { env } from '../config/env.js'
 import { filterTools } from '../config/policy.js'
 import { getTools, toDeepSeekTools } from '../mcp/client.js'
-import { personaName, personaPrompt } from './persona.js'
+import { personaPrompt } from './persona.js'
 import { LOCAL_TOOLS } from './local-tools.js'
 import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
 import { TODO_TOOLS } from './todo-tools.js'
 import { getTodos, renderTodos, staleReminder } from './todos.js'
+import { compactConversation } from './compaction.js'
 import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
@@ -96,34 +97,20 @@ ${self}`)
   return lines.join('\n\n')
 }
 
-/** 历史溢出时让模型压成一段摘要。压不动就把原文还回去，别丢内容 */
+/** 历史溢出时压成一份交接摘要。压不动就把原文还回去，别丢内容 */
 async function compress(key, overflow) {
-  const transcript = overflow
-    .map((message) => `${message.role === 'user' ? '对方' : personaName}：${message.content}`)
-    .join('\n')
+  const summary = await compactConversation({
+    messages: overflow,
+    // 带上上一版摘要做增量合并，不是覆盖——多次压缩时不能把更早的结论丢掉
+    previousSummary: midTerm(key),
+  })
 
-  try {
-    const response = await client.chat.completions.create({
-      model: env.model,
-      messages: [
-        {
-          role: 'system',
-          content:
-            '把下面这段对话压成 200 字以内的摘要。保留人物、在聊的事、已经定下的结论，' +
-            '丢掉寒暄和重复。只输出摘要正文。',
-        },
-        { role: 'user', content: transcript },
-      ],
-      max_tokens: 500,
-    })
-
-    const summary = response.choices[0]?.message?.content?.trim()
-    if (!summary) throw new Error('模型没返回摘要')
-    setMidTerm(key, summary)
-  } catch (error) {
-    console.warn('[记忆] 压缩失败，把原文放回历史：', error?.message ?? error)
+  if (!summary) {
     restoreOverflow(key, overflow)
+    return
   }
+
+  setMidTerm(key, summary)
 }
 
 /**

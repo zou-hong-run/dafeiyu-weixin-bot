@@ -19,7 +19,8 @@ export function useMemoryDir(dir) {
 
 const SHORT_TERM_LIMIT = Math.max(env.historyTurns, 1) * 2
 const LONG_TERM_LIMIT = 60
-const MID_TERM_LIMIT = 2000
+// 交接摘要要装下结论、具体数值、报错原文和后续计划，2000 字太紧
+const MID_TERM_LIMIT = 4000
 const TOOL_MARKUP = /[｜|]{2}\s*DSML/i
 
 let state = { sessions: {} }

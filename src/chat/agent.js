@@ -5,6 +5,7 @@ import { getTools, toDeepSeekTools } from '../mcp/client.js'
 import { LOCAL_TOOLS } from './local-tools.js'
 import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
+import { compactConversation } from './compaction.js'
 import { TODO_TOOLS } from './todo-tools.js'
 
 // 后台工单的执行引擎。
@@ -83,6 +84,54 @@ const NOTIFY_TOOL = {
       required: ['text'],
     },
   },
+}
+
+/**
+ * 工单的上下文压缩。
+ *
+ * 原来是「超过 40 条就保留最近 20 条，其余丢掉」——丢掉的正是「我做到哪一步了」
+ * 和「之前踩过什么坑」，长任务跑到后面等于重新开始。
+ * 现在改成先把前面压成交接摘要，再保留最近的有效消息。
+ *
+ * 切分点必须落在能安全拼接的位置：tool 消息不能脱离它对应的 assistant(tool_calls)。
+ */
+async function compactAgentMessages(messages) {
+  const KEEP_RECENT = 16
+
+  let start = Math.max(2, messages.length - KEEP_RECENT)
+  while (start < messages.length) {
+    const item = messages[start]
+    if (item.role === 'user') break
+    if (item.role === 'assistant' && !item.tool_calls?.length) break
+    start += 1
+  }
+  if (start >= messages.length) return false
+
+  const dropped = messages.slice(2, start)
+  if (dropped.length === 0) return false
+
+  const summary = await compactConversation({
+    messages: dropped.map((item) => ({
+      role: item.role,
+      content: typeof item.content === 'string' ? item.content : JSON.stringify(item.content ?? ''),
+    })),
+    extra:
+      '这是后台工单的执行过程。重点保留：做到哪一步了、改过哪些文件、遇到并解决了什么问题、还剩什么没做。',
+  })
+
+  const head = messages.slice(0, 2)
+  const tail = messages.slice(start)
+
+  messages.length = 0
+  messages.push(
+    ...head,
+    {
+      role: 'user',
+      content: `【之前的执行过程已压缩，以下是交接摘要】\n${summary || '（压缩失败，只保留最近的记录）'}`,
+    },
+    ...tail,
+  )
+  return true
 }
 
 function clip(text) {
@@ -192,12 +241,9 @@ export async function runTaskAgent({
       messages.push({ role: 'tool', tool_call_id: call.id, content: clip(result) })
     }
 
-    // 长任务容易把上下文撑爆：保留系统提示和最近 20 条，老的工具往返丢掉
+    // 长任务撑爆上下文时先压缩再保留，别直接丢——丢的是「做到哪了」和「踩过什么坑」
     if (messages.length > 40) {
-      const head = messages.slice(0, 2)
-      const tail = messages.slice(-20)
-      messages.length = 0
-      messages.push(...head, { role: 'user', content: '（更早的工具往返已省略，继续当前任务）' }, ...tail)
+      await compactAgentMessages(messages)
     }
   }
 
