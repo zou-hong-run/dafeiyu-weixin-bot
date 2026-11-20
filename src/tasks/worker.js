@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { env } from '../config/env.js'
 import { runTaskAgent, verifyCompletion } from '../chat/agent.js'
+import { clearTodos } from '../chat/todos.js'
 import {
   createTicket,
   finishTicket,
@@ -232,18 +233,22 @@ export function startTask({
       const seconds = Math.round((Date.now() - ticket.createdAt) / 1000)
       const tail = passed ? '' : `\n（自动续跑 ${env.taskMaxContinuations} 次仍未通过验收）`
 
+      // 清单只在这张工单期间有意义，结束就清掉，别留到下次跑别的任务
+      clearTodos(context.sessionKey)
       finishTicket(ticket.id, { status: STATUS.done, answer })
       await say(`工单 ${ticket.id} 完成，用时 ${seconds} 秒，共 ${ticket.step} 步${tail}\n\n${answer}`)
       return answer
     } catch (error) {
       if (controller.signal.aborted) {
         console.log(`[Worker] ${ticket.id} 被中止`)
+        clearTodos(context.sessionKey)
         finishTicket(ticket.id, { status: STATUS.cancelled, error: '被用户中止' })
         await say(`工单 ${ticket.id} 已中止。`)
         return ''
       }
 
       console.error(`[Worker] ${ticket.id} 失败：`, error?.message ?? error)
+      clearTodos(context.sessionKey)
       finishTicket(ticket.id, { status: STATUS.failed, error: String(error?.message ?? error) })
       await say(`工单 ${ticket.id} 失败：${error?.message ?? error}`)
       throw error

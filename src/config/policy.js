@@ -38,9 +38,19 @@ function normalizeToolName(name) {
     .toLowerCase()
 }
 
+/**
+ * 名字里带敏感词、但实际无害的工具。
+ *
+ * 清单只是模型自己的进度记录，不碰文件也不执行命令——按单词匹配的话
+ * `todo_write` 会被当成「写文件」类工具，对非管理员直接拒绝，
+ * 结果就是清单功能对所有人都不可用。
+ */
+const SAFE_TOOLS = new Set(['todo_write'])
+
 /** 这个工具要不要走白名单：先看名单，再看名字里的能力词 */
 export function isDangerousTool(name) {
   const toolName = String(name ?? '')
+  if (SAFE_TOOLS.has(toolName)) return false
   if (DANGEROUS_TOOLS.has(toolName)) return true
   return normalizeToolName(toolName)
     .split('_')
@@ -93,6 +103,9 @@ export const TOOL_POLICY = {
   read_document: READ_ONLY,
   write_file: OPEN,
   edit_file: OPEN,
+
+  // 任务清单（模型自己记进度用，不涉及外部副作用）
+  todo_write: OPEN,
 
   // 记忆
   remember: OPEN,

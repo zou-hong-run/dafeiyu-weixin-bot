@@ -4,6 +4,7 @@ import { callTool } from '../mcp/client.js'
 import { auditSend, auditTool } from '../ops/audit.js'
 import { LOCAL_TOOL_NAMES, makeLocalHandlers } from './local-tools.js'
 import { MEDIA_TOOL_NAMES, makeMediaHandlers } from './media-tools.js'
+import { TODO_TOOL_NAMES, makeTodoHandlers } from './todo-tools.js'
 
 // 工具执行层：对话和后台工单共用同一套权限判断和分流逻辑。
 //
@@ -36,6 +37,11 @@ export async function runTool(name, args, { key, actor = '', send } = {}) {
   try {
     if (LOCAL_TOOL_NAMES.has(name)) {
       const handlers = makeLocalHandlers(key)
+      return String(await handlers[name](args ?? {}))
+    }
+
+    if (TODO_TOOL_NAMES.has(name)) {
+      const handlers = makeTodoHandlers(key)
       return String(await handlers[name](args ?? {}))
     }
 

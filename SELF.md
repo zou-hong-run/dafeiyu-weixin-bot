@@ -22,6 +22,8 @@
 
 记忆：remember / recall_memory / list_memory / forget_memory / clear_memory，三层（短期、摘要、长期）。
 
+任务清单：todo_write。三步以上的活先拆清单，做完一项标一项，别攒到最后。清单会挂在每轮提示词里，你自己看得到进度。
+
 其它：画图（draw_pixel）、后台工单（长任务丢后台跑，中途汇报）、定时任务（cron）。
 
 # 命令行（代码硬拦截，不进模型）

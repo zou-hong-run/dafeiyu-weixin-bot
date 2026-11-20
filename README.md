@@ -119,7 +119,9 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 媒体 | `draw_pixel` `find_music` |
 | 视频 | `find_video` `fetch_video` `video_meta` `read_video_subtitle` |
 
-**9 个本地工具**（主进程内，不走子进程）：`remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` `send_image` `send_file` `send_video` `send_audio`
+**10 个本地工具**（主进程内，不走子进程）：`todo_write` `remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` `send_image` `send_file` `send_video` `send_audio`
+
+**任务清单**：多步任务自己拆成清单（`todo_write`），挂在每轮提示词里；超过 5 轮没更新会自动催一句，防止「建了就不管」。
 
 **记忆**：三层——短期（最近 N 轮）、中期（溢出后自动压成摘要）、长期（`remember` 写的永久事实）。
 

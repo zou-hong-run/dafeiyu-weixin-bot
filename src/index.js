@@ -10,6 +10,7 @@ import { cleanupIncoming, describeInbound } from './channel/incoming.js'
 import { sendReply } from './channel/sender.js'
 import { getTools, startMcp, stopMcp } from './mcp/client.js'
 import { flush, migrateLegacySessions, reset, stats } from './memory/memory.js'
+import { flushTodos } from './chat/todos.js'
 import { canPushTo, flushActivity, idleMinutesOf, lastActiveAt, touchActivity } from './ops/activity.js'
 import { acquireInstanceLock } from './ops/instance.js'
 import { log } from './ops/logger.js'
@@ -426,6 +427,7 @@ async function shutdown(signal) {
     flush()
     flushActivity()
     flushTickets()
+    flushTodos()
   } catch (error) {
     log.error('落盘失败', { error: error?.message ?? String(error) })
   }

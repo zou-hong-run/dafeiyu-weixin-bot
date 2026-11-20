@@ -5,6 +5,7 @@ import { getTools, toDeepSeekTools } from '../mcp/client.js'
 import { LOCAL_TOOLS } from './local-tools.js'
 import { MEDIA_TOOLS } from './media-tools.js'
 import { runTool } from './tool-runner.js'
+import { TODO_TOOLS } from './todo-tools.js'
 
 // 后台工单的执行引擎。
 //
@@ -120,6 +121,7 @@ export async function runTaskAgent({
 
   const tools = [
     ...LOCAL_TOOLS,
+    ...TODO_TOOLS,
     ...(send ? MEDIA_TOOLS : []),
     ...(notifyUser ? [NOTIFY_TOOL] : []),
     ...toDeepSeekTools(filterTools(getTools(), actor)),
