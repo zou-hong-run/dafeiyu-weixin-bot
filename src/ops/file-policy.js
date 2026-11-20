@@ -31,12 +31,14 @@ export function sensitiveReason(rel) {
   }
 
   for (const prefix of SENSITIVE_PREFIXES) {
-    const hit = prefix.endsWith('/')
-      ? normalized.startsWith(prefix)
-      : // 目录项要连同子路径一起挡；文件项还要挡 .env.local 这类同名前缀
-        normalized === prefix ||
-        normalized.startsWith(`${prefix}/`) ||
-        normalized.startsWith(`${prefix}.`)
+    // 前缀可能是 'data/' 也可能 '.env'，统一按「裸名字」比较：
+    // 目录名本身和它下面的东西都要挡（list_dir('data') 也不该放行）
+    const bare = prefix.replace(/\/$/, '')
+    const hit =
+      normalized === bare ||
+      normalized.startsWith(`${bare}/`) ||
+      // 文件项还要挡 .env.local 这类同名前缀
+      (!prefix.endsWith('/') && normalized.startsWith(`${bare}.`))
     if (hit) return '密钥、记忆、日志、备份和依赖目录都不在开放范围内'
   }
   return ''

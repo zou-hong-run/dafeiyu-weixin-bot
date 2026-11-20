@@ -7,30 +7,35 @@
 项目目前没有单元测试，靠语法检查和启动冒烟：
 
 ```bash
-# 1. 所有文件语法（最快，能抓到括号和 import 拼写）
-for f in $(find src -name "*.js"); do node --check "$f" || echo "FAIL: $f"; done
-
-# 2. 模块能否加载（缺依赖、循环依赖在这里暴露）
-DEEP_SEEK_API_KEY=test node --input-type=module -e "await import('./src/config/policy.js')"
-
-# 3. 启动冒烟：跑到「长轮询中」就说明链路通了，Ctrl+C 退出
-pnpm start
+pnpm check   # 语法 + 模块加载 + 权限表自洽 + 单元测试（约 15 秒）
+pnpm test    # 只跑单元测试
+pnpm start   # 启动冒烟：跑到「长轮询中」就说明链路通了，Ctrl+C 退出
 ```
 
-注意第 2 条别直接 import `src/index.js`——它会真的启动机器人。
+`pnpm check` 就是 `.github/workflows/ci.yml` 里跑的那一条，本地和线上一致。它会：
+- 对 `src/` 和 `scripts/` 下所有 `.js` 跑 `node --check`
+- 把每个模块 import 一遍（`src/index.js` 和 `scripts/` 除外——它们会真的执行）
+- 校验权限表自洽：高危工具都有条目、白名单没和危险名单打架
+- 跑 `tests/` 下的单元测试
+
+**代码自动同步在推送前会先跑这条检查**，不过就不推。所以 `pnpm check` 红了连提交都进不了远端。
 
 ## 二、纯逻辑改动应该补测试
 
-这几块是可测的纯函数，改了要加 `tests/*.test.js`：
+已有测试（改了对应模块要一起更新）：
 
-- `src/mcp-server/shell-guard.js` —— 命令归一化、绕过写法
-- `src/config/policy.js` —— 权限判断、默认拒绝
-- `src/ops/file-policy.js` —— 敏感路径黑名单
-- `src/ops/activity.js` —— 闲置判断
-- `src/chat/merge.js` —— 合并窗口
-- `src/tasks/scheduler.js` —— cron 解析
+| 文件 | 覆盖 |
+|---|---|
+| `tests/shell-guard.test.js` | 命令拦截：删根目录、读密钥、Windows 反斜杠、全角绕过 |
+| `tests/policy.test.js` | 权限三档、SAFE_TOOLS 不误判、权限表完整性 |
+| `tests/file-policy.test.js` | 敏感路径黑名单、路径穿越 |
+| `tests/truncate.test.js` | 头尾保留、单行截断、落盘 |
+| `tests/limiter.test.js` | 并发上限、排队、异常不占名额 |
+| `tests/todos.test.js` | 清单状态、单 in_progress 约束、过期提醒 |
 
-现在还没有 `tests/` 目录。第一次加测试时用 `node --test`，并在 `package.json` 补上 `"test": "node --test \"tests/**/*.test.js\""`。
+还值得补的：`src/chat/merge.js`（连发合并窗口）、`src/tasks/scheduler.js`（cron 解析）、`src/ops/activity.js`（推送门控判定）。
+
+新加测试就放 `tests/<模块>.test.js`，`pnpm check` 会自动带上。
 
 ## 三、安全底线不许为了跑通而放宽
 

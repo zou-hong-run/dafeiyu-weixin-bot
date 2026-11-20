@@ -1,3 +1,5 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { paths } from '../config/paths.js'
@@ -98,6 +100,33 @@ async function commitLocal(message) {
   return { committed: true, files: status.files.length }
 }
 
+/**
+ * 推送前的闸门：跑一遍 pnpm check，不过就不推。
+ *
+ * 为什么值得：机器人会自己改代码，而 check 能抓住语法错误、漏 import、
+ * 权限表不一致这些问题。坏代码最多留在本地，不会进远端。
+ * 想跳过就设 SYNC_SKIP_CHECK=true（比如 CI 环境里没有依赖）。
+ */
+async function prePushCheck() {
+  if (process.env.SYNC_SKIP_CHECK === 'true') return { ok: true, skipped: true }
+
+  const checkScript = path.join(paths.projectRoot, 'scripts', 'check.js')
+  if (!fs.existsSync(checkScript)) return { ok: true, skipped: true }
+
+  try {
+    await run(process.execPath, [checkScript, '--quiet'], {
+      cwd: paths.projectRoot,
+      timeout: 300_000,
+      maxBuffer: 8 * 1024 * 1024,
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+    })
+    return { ok: true }
+  } catch (error) {
+    const detail = String(error?.stderr ?? error?.stdout ?? error?.message ?? error).trim()
+    return { ok: false, detail: detail.slice(0, 1200) }
+  }
+}
+
 /** 推到当前分支。没有 upstream 就先设一个 */
 async function pushBranch() {
   const status = await gitStatus()
@@ -164,9 +193,21 @@ export async function syncCode({ message = '' } = {}) {
   const commit = await commitLocal(commitMessage)
   report.committed = commit.files
 
-  // 2. 推上去
+  // 2. 推送前先过检查——坏代码不该进远端
   const statusAfterCommit = await gitStatus()
-  if (statusAfterCommit.ok && (statusAfterCommit.ahead > 0 || !statusAfterCommit.hasUpstream)) {
+  const shouldPush =
+    statusAfterCommit.ok && (statusAfterCommit.ahead > 0 || !statusAfterCommit.hasUpstream)
+
+  if (shouldPush) {
+    const gate = await prePushCheck()
+    if (!gate.ok) {
+      throw new Error(
+        `检查没通过，没有推送（本地提交已留下，修完再同步一次）：
+${gate.detail}`,
+      )
+    }
+    if (!gate.skipped) log.info('[同步] 推送前检查通过')
+
     const pushed = await pushBranch()
     report.pushed = true
     report.branch = pushed.branch
