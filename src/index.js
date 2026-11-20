@@ -249,7 +249,7 @@ const COMMANDS = {
       `· 当前账号：${tenantId}${client?.selfId() ? `（${client.selfId()}）` : '（未运行）'}`,
       `· 账号总数：${tenants.length} 个，运行中 ${tenants.filter((t) => t.running).length} 个`,
       `· 运行：${formatDuration(Date.now() - startedAt)}`,
-      `· 工具：${tools.length} 个 MCP 工具 + 9 个本地工具`,
+      `· 工具：${tools.length} 个 MCP 工具 + 15 个本地工具`,
       `· 记忆：短期 ${s.shortTerm} 轮、摘要 ${s.midTermChars} 字、长期 ${s.longTerm} 条`,
       `· 工单：在跑 ${workers.length} 个`,
       `· 定时：${sched.total} 条（启用 ${sched.enabled}），上次检查 ${sched.tickAgeSeconds ?? '?'} 秒前`,

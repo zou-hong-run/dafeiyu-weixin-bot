@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { env } from '../config/env.js'
 import { filterTools } from '../config/policy.js'
-import { getTools, toDeepSeekTools } from '../mcp/client.js'
+import { getTools, syncRegistry, toDeepSeekTools } from '../mcp/client.js'
 import { personaPrompt } from './persona.js'
 import { LOCAL_TOOLS } from './local-tools.js'
 import { MEDIA_TOOLS } from './media-tools.js'
@@ -14,6 +14,8 @@ import { truncateToolResult } from './truncate.js'
 import { complete } from './llm.js'
 import { PLAN_MODE_TOOLS, getPlan, isPlanning, planModePrompt } from './plan.js'
 import { PLAN_TOOLS } from './plan-tools.js'
+import { SKILL_TOOLS } from './skill-tools.js'
+import { skillsPrompt } from '../skills/store.js'
 import { appendTurn, history, midTerm, restoreOverflow, setMidTerm, takeOverflow } from '../memory/memory.js'
 import { mimeOf } from '../channel/incoming.js'
 
@@ -84,6 +86,10 @@ ${self}`)
   const plan = getPlan(key)
   if (plan) lines.push(planModePrompt(plan))
 
+  // 技能摘要：只给名字和一句话，全文让它自己 read_skill
+  const skills = skillsPrompt(key)
+  if (skills) lines.push(skills)
+
   // 任务清单挂在提示词里，模型每轮都看得到自己在第几步
   const todos = renderTodos(getTodos(key))
   if (todos) lines.push(todos)
@@ -144,6 +150,13 @@ async function answerWithoutTools(messages) {
  *   send 不传就没有媒体发送工具——没有会话上下文时发不出去
  */
 export async function chat(key, input, { images = [], name = '', actor = '', send } = {}) {
+  // 同步一次 MCP 注册表：刚 add_mcp 注册的服务，这一轮就能连上。
+  // 内部按文件 mtime 判断，没变化直接返回，开销可以忽略。
+  await Promise.race([
+    syncRegistry().catch(() => {}),
+    new Promise((resolve) => setTimeout(resolve, 5000).unref()),
+  ])
+
   // 先把溢出压掉，再拼历史——不然这轮送进去的还是压缩前的全量
   const overflow = takeOverflow(key, HISTORY_BUDGET_TOKENS)
   if (overflow) await compress(key, overflow)
@@ -163,6 +176,7 @@ export async function chat(key, input, { images = [], name = '', actor = '', sen
   const allTools = [
     ...LOCAL_TOOLS,
     ...TODO_TOOLS,
+    ...SKILL_TOOLS,
     ...(send ? MEDIA_TOOLS : []),
     ...toDeepSeekTools(filterTools(getTools(), actor)),
   ]

@@ -123,10 +123,23 @@ cron 是标准五段格式（分 时 日 月 周）。任务返回空或 `SILENT
 | 执行 | `shell` `run_script` `restart_self` |
 | 媒体 | `draw_pixel` `find_music` |
 | 视频 | `find_video` `fetch_video` `video_meta` `read_video_subtitle` |
+| 扩展 | `add_mcp` `list_mcp` `remove_mcp` `install_package` |
 
-**10 个本地工具**（主进程内，不走子进程）：`todo_write` `remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` `send_image` `send_file` `send_video` `send_audio`
+**15 个本地工具**（主进程内，不走子进程）：
+
+| 类别 | 工具 |
+|---|---|
+| 进度 | `todo_write` |
+| 规划 | `exit_plan_mode` |
+| 技能 | `write_skill` `list_skills` `read_skill` `delete_skill` |
+| 记忆 | `remember` `recall_memory` `list_memory` `forget_memory` `clear_memory` |
+| 发送 | `send_image` `send_file` `send_video` `send_audio` |
 
 **多用户并发**：不同的人同时聊天互不阻塞，每人一条独立会话队列（同一个人的消息按顺序处理，避免上下文打架）。模型调用和工具调用各有并发闸门（默认各 4 个），超出的排队——不是为了省资源，是为了不把接口一次打爆。`/diag` 能看到当前并发和排队数。
+
+**技能**：`/` 说「学一下这套流程」时，它会写成技能存下来，以后遇到同类任务自动看到摘要、按需读全文。**按会话隔离**——别人写的技能不会进你的对话。
+
+**扩展能力**：可以让它装 npm 包（`install_package`）、注册外部 MCP 服务（`add_mcp`）来获得新工具。这三个都是管理员专属：注册的服务影响整个进程，而且它带来的新工具默认**没有权限**，要在 `src/config/policy.js` 里显式加一行才能用。
 
 **任务清单**：多步任务自己拆成清单（`todo_write`），挂在每轮提示词里；超过 5 轮没更新会自动催一句，防止「建了就不管」。
 

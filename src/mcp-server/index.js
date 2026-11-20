@@ -435,6 +435,10 @@ const { FS_TOOLS, FS_HANDLERS } = await import('./fs-tools.js')
 TOOLS.push(...FS_TOOLS)
 Object.assign(HANDLERS, FS_HANDLERS)
 
+const { EVOLVE_TOOLS, EVOLVE_HANDLERS } = await import('./evolve.js')
+TOOLS.push(...EVOLVE_TOOLS)
+Object.assign(HANDLERS, EVOLVE_HANDLERS)
+
 const { MUSIC_TOOLS, MUSIC_HANDLERS } = await import('./music.js')
 TOOLS.push(...MUSIC_TOOLS)
 Object.assign(HANDLERS, MUSIC_HANDLERS)

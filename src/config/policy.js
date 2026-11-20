@@ -20,6 +20,10 @@ export const DANGEROUS_TOOLS = new Set([
   'edit_file',
   'restart_self',
   'clear_memory',
+  // 扩展能力：注册外部服务、装包——它们影响的是整个进程，不是某一次对话
+  'add_mcp',
+  'remove_mcp',
+  'install_package',
 ])
 
 /**
@@ -45,7 +49,13 @@ function normalizeToolName(name) {
  * `todo_write` 会被当成「写文件」类工具，对非管理员直接拒绝，
  * 结果就是清单功能对所有人都不可用。
  */
-const SAFE_TOOLS = new Set(['todo_write', 'exit_plan_mode'])
+const SAFE_TOOLS = new Set([
+  'todo_write',
+  'exit_plan_mode',
+  // 技能只影响自己的会话，名字里的 write/delete 是误伤
+  'write_skill',
+  'delete_skill',
+])
 
 /** 这个工具要不要走白名单：先看名单，再看名字里的能力词 */
 export function isDangerousTool(name) {
@@ -108,6 +118,18 @@ export const TOOL_POLICY = {
   todo_write: OPEN,
   // 规划模式的出口：只是把方案交出来，不动系统
   exit_plan_mode: OPEN,
+
+  // 技能（按会话隔离，只影响自己）
+  write_skill: OPEN,
+  list_skills: READ_ONLY,
+  read_skill: READ_ONLY,
+  delete_skill: OPEN,
+
+  // 扩展能力（前三个是真高危，靠 DANGEROUS_TOOLS 拦）
+  add_mcp: OPEN,
+  list_mcp: READ_ONLY,
+  remove_mcp: OPEN,
+  install_package: OPEN,
 
   // 记忆
   remember: OPEN,

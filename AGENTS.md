@@ -47,6 +47,7 @@ pnpm start
 | `src/mcp-server/sandbox.js` | Linux 上的 bwrap 沙箱（可写目录只有 `tmp/`） |
 | `src/mcp/client.js` | MCP 子进程的环境变量白名单 |
 | `src/mcp/mcp-guard.js` | 外部 MCP 服务的启动命令白名单 |
+| `src/mcp-server/evolve.js` | 装包强制 `--ignore-scripts`、注册表不存 env、新工具默认无权限 |
 
 加例外的提交信息用 `security:` 开头，说明为什么需要放宽、放宽后最坏情况是什么。
 
