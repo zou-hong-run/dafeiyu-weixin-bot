@@ -1,8 +1,11 @@
 node_modules/
-.env
-data/
-downloads/
-logs/
-tmp/
+
+# 以下都是运行时数据，用前导斜杠锚定到项目根，
+# 别写成 skills/ 那种——它会连 src/skills/ 这样的源码目录一起忽略掉
+/.env
+/data/
+/downloads/
+/logs/
+/tmp/
+/skills/
 *.log
-skills/
